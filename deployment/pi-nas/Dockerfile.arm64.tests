@@ -1,0 +1,22 @@
+# Dockerfile for running tests on ARM64
+FROM mcr.microsoft.com/dotnet/sdk:8.0-bookworm-slim-arm64v8 AS test
+
+WORKDIR /src
+
+# Copy solution and project files
+COPY *.sln ./
+COPY src/Mo5.RagServer.Core/*.csproj ./src/Mo5.RagServer.Core/
+COPY src/Mo5.RagServer.Infrastructure/*.csproj ./src/Mo5.RagServer.Infrastructure/
+COPY src/Mo5.RagServer.Api/*.csproj ./src/Mo5.RagServer.Api/
+COPY tests/Mo5.RagServer.Tests/*.csproj ./tests/Mo5.RagServer.Tests/
+
+# Restore dependencies
+RUN dotnet restore
+
+# Copy all source code
+COPY . .
+
+# Run tests
+WORKDIR /src/tests/Mo5.RagServer.Tests
+CMD ["dotnet", "test", "--logger", "console;verbosity=detailed", "--no-restore"]
+

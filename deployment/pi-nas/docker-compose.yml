@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: mo5-rag-postgres
+    environment:
+      POSTGRES_DB: mo5_rag
+      POSTGRES_USER: mo5_user
+      POSTGRES_PASSWORD: mo5_password_change_me
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - /srv/dev-disk-by-uuid-8a747308-0fd1-4223-b1be-09ccfdf4bad1/docker/mo5-rag/postgres-data:/var/lib/postgresql/data
+      - ../../scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mo5_user -d mo5_rag"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - mo5-rag-network
+
+  api:
+    build:
+      context: ../..
+      dockerfile: deployment/pi-nas/Dockerfile.arm64
+      target: runtime
+    image: mo5-rag-api:latest
+    container_name: mo5-rag-api
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=mo5_rag;Username=mo5_user;Password=mo5_password_change_me;Include Error Detail=false
+      - EmbeddingService__Provider=TfIdf
+      - EmbeddingService__VectorDimensions=384
+      - RagSettings__KnowledgeBasePath=/app/knowledge
+      - RagSettings__ChunkSize=1000
+      - RagSettings__ChunkOverlap=200
+      - RagSettings__MaxResults=10
+      - RagSettings__MinSimilarityScore=0.7
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../../knowledge:/app/knowledge:ro
+    restart: unless-stopped
+    networks:
+      - mo5-rag-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  mo5-rag-network:
+    driver: bridge
+

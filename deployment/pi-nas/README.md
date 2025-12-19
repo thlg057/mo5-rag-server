@@ -1,0 +1,254 @@
+# 🍓 Déploiement Raspberry Pi NAS
+
+Déploiement optimisé pour Raspberry Pi avec architecture ARM64.
+
+## 📋 Prérequis
+
+### Matériel
+- Raspberry Pi 4 ou 5 (4GB+ RAM recommandé)
+- Carte SD 32GB+ ou SSD
+- Connexion réseau stable
+
+### Logiciel
+- Raspberry Pi OS Lite 64-bit
+- Docker 20.10+
+- Docker Compose 2.0+
+
+## 🚀 Installation
+
+### 1. Installer Docker (si nécessaire)
+
+```bash
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+```
+
+### 2. Installer Docker Compose (si nécessaire)
+
+```bash
+sudo apt-get update
+sudo apt-get install -y docker-compose-plugin
+```
+
+### 3. Cloner le projet
+
+```bash
+cd /srv
+git clone <votre-repo> mo5-rag-server
+cd mo5-rag-server/deployment/pi-nas
+```
+
+## 🔧 Configuration
+
+### Variables d'environnement
+
+Créez un fichier `.env` :
+
+```bash
+# Base de données PostgreSQL
+POSTGRES_USER=raguser
+POSTGRES_PASSWORD=VotreMotDePasseSecurise123!
+POSTGRES_DB=ragdb
+
+# Application
+ASPNETCORE_ENVIRONMENT=Production
+ASPNETCORE_URLS=http://+:8080
+
+# Chemins (relatifs au répertoire deployment/pi-nas)
+KNOWLEDGE_PATH=../../knowledge
+```
+
+## 🚀 Déploiement
+
+### Méthode 1 : Script automatique (recommandé)
+
+```bash
+./deploy.sh
+```
+
+Le script va :
+1. ✅ Vérifier les prérequis
+2. ✅ Construire l'image ARM64
+3. ✅ Démarrer les services
+4. ✅ Vérifier la santé de l'application
+5. ✅ Afficher les logs
+
+### Méthode 2 : Manuel
+
+```bash
+# Construire l'image
+docker build -f Dockerfile.arm64 -t mo5-rag-api:arm64 ../../
+
+# Démarrer les services
+docker-compose up -d
+
+# Vérifier les logs
+docker-compose logs -f
+```
+
+## 📊 Vérification
+
+### Santé de l'application
+
+```bash
+curl http://localhost:8080/health
+# Devrait retourner: Healthy
+```
+
+### Test de recherche
+
+```bash
+curl -X POST http://localhost:8080/api/search \
+  -H "Content-Type: application/json" \
+  -d '{"query": "graphics mode", "maxResults": 3}'
+```
+
+### Vérifier les conteneurs
+
+```bash
+docker-compose ps
+```
+
+## 🔍 Monitoring
+
+### Logs en temps réel
+
+```bash
+# Tous les services
+docker-compose logs -f
+
+# API uniquement
+docker-compose logs -f api
+
+# PostgreSQL uniquement
+docker-compose logs -f postgres
+```
+
+### Statistiques des conteneurs
+
+```bash
+docker stats
+```
+
+## 🛠️ Maintenance
+
+### Redémarrer les services
+
+```bash
+docker-compose restart
+```
+
+### Arrêter les services
+
+```bash
+docker-compose down
+```
+
+### Mettre à jour l'application
+
+```bash
+# Récupérer les dernières modifications
+git pull
+
+# Reconstruire et redémarrer
+./deploy.sh
+```
+
+### Sauvegarder la base de données
+
+```bash
+docker exec mo5-rag-postgres pg_dump -U raguser ragdb > backup_$(date +%Y%m%d).sql
+```
+
+### Restaurer la base de données
+
+```bash
+docker exec -i mo5-rag-postgres psql -U raguser ragdb < backup_20231219.sql
+```
+
+### Exécuter les tests ARM64
+
+```bash
+# Build de l'image de tests
+docker build -f Dockerfile.arm64.tests -t mo5-rag-tests:arm64 ../..
+
+# Exécution des tests
+docker run --rm mo5-rag-tests:arm64
+```
+
+## 📁 Structure des fichiers
+
+```
+pi-nas/
+├── docker-compose.yml       # Configuration Docker Compose
+├── Dockerfile.arm64         # Image Docker ARM64 (production)
+├── Dockerfile.arm64.tests   # Image Docker ARM64 (tests)
+├── deploy.sh                # Script de déploiement
+└── README.md                # Ce fichier
+```
+
+## 🔐 Sécurité
+
+### Recommandations
+
+1. **Changez le mot de passe PostgreSQL** dans `.env`
+2. **Utilisez HTTPS** en production (configurez un certificat SSL)
+3. **Limitez l'accès réseau** avec un firewall
+4. **Mettez à jour régulièrement** les images Docker
+
+### Firewall (optionnel)
+
+```bash
+sudo ufw allow 8080/tcp  # API
+sudo ufw enable
+```
+
+## ⚡ Performance
+
+### Optimisations appliquées
+
+- ✅ Image multi-stage pour réduire la taille
+- ✅ Embeddings TF-IDF locaux (pas d'API externe)
+- ✅ PostgreSQL avec pgvector optimisé
+- ✅ Singleton pour le service TF-IDF
+- ✅ API ASP.NET Core optimisée
+
+### Ressources utilisées
+
+- **RAM** : ~1.5GB (API + PostgreSQL)
+- **CPU** : ~10-20% au repos, ~50-80% pendant l'indexation
+- **Disque** : ~2GB (images + données)
+
+## 🆘 Dépannage
+
+### L'API ne démarre pas
+
+```bash
+# Vérifier les logs
+docker-compose logs api
+
+# Vérifier que PostgreSQL est prêt
+docker-compose logs postgres | grep "ready to accept connections"
+```
+
+### Erreur de connexion à PostgreSQL
+
+```bash
+# Vérifier que le conteneur PostgreSQL est en cours d'exécution
+docker-compose ps postgres
+
+# Tester la connexion
+docker exec mo5-rag-postgres psql -U raguser -d ragdb -c "SELECT 1;"
+```
+
+### Recherche retourne 0 résultats
+
+Consultez [SEMANTIC-SEARCH-FIX-SUMMARY.md](../../docs/SEMANTIC-SEARCH-FIX-SUMMARY.md)
+
+## 📚 Documentation
+
+- [Guide de déploiement général](../README.md)
+- [Documentation API](../../docs/API-REFERENCE.md)
+- [Tests](../../tests/README.md)
+
