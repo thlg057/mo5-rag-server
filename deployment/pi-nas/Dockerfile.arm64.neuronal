@@ -1,0 +1,75 @@
+# Dockerfile optimisé pour Raspberry Pi (ARM64) avec support Python pour Sentence Transformers
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:8.0-bookworm-slim-arm64v8 AS build
+WORKDIR /src
+
+# Copy solution and project files
+COPY Mo5.RagServer.sln ./
+COPY src/Mo5.RagServer.Api/Mo5.RagServer.Api.csproj src/Mo5.RagServer.Api/
+COPY src/Mo5.RagServer.Core/Mo5.RagServer.Core.csproj src/Mo5.RagServer.Core/
+COPY src/Mo5.RagServer.Infrastructure/Mo5.RagServer.Infrastructure.csproj src/Mo5.RagServer.Infrastructure/
+COPY tests/Mo5.RagServer.Tests/Mo5.RagServer.Tests.csproj tests/Mo5.RagServer.Tests/
+
+# Restore dependencies
+RUN dotnet restore
+
+# Copy source code
+COPY src/ src/
+COPY tests/ tests/
+
+# Build (skip tests for production deployment)
+RUN dotnet build src/Mo5.RagServer.Api/Mo5.RagServer.Api.csproj --no-restore -c Release
+
+# Publish
+RUN dotnet publish src/Mo5.RagServer.Api/Mo5.RagServer.Api.csproj -c Release -o /app/publish --no-restore
+
+# Runtime stage with Python support
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-bookworm-slim-arm64v8 AS runtime
+WORKDIR /app
+
+# Install Python 3, pip, curl, and clean up in one layer to reduce image size
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        python3 \
+        python3-pip \
+        python3-venv \
+        curl \
+        ca-certificates && \
+    rm -rf /var/lib/apt/lists/* && \
+    # Create symlink for python command
+    ln -s /usr/bin/python3 /usr/bin/python && \
+    # Upgrade pip (use --break-system-packages for Debian 12)
+    python3 -m pip install --no-cache-dir --break-system-packages --upgrade pip && \
+    # Create user
+    groupadd -r mo5user && \
+    useradd -r -g mo5user mo5user
+
+# Install Python dependencies for Sentence Transformers
+# This is done in the build to cache the dependencies
+# Using compatible versions: torch 2.2+ for transformers 4.36+
+RUN python3 -m pip install --no-cache-dir --break-system-packages \
+    torch==2.2.0 \
+    sentence-transformers==2.3.1 \
+    numpy==1.24.3
+
+# Copy published app
+COPY --from=build /app/publish .
+
+# Create knowledge directory and cache directory for HuggingFace models
+RUN mkdir -p /app/knowledge /app/.cache/huggingface && \
+    chown -R mo5user:mo5user /app
+
+# Set environment variable for HuggingFace cache
+ENV TRANSFORMERS_CACHE=/app/.cache/huggingface
+ENV HF_HOME=/app/.cache/huggingface
+
+# Switch to non-root user
+USER mo5user
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=120s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+ENTRYPOINT ["dotnet", "Mo5.RagServer.Api.dll"]
+

@@ -2,6 +2,21 @@
 
 Déploiement optimisé pour Raspberry Pi avec architecture ARM64.
 
+## 🧠 Deux modes disponibles
+
+### Mode TF-IDF (par défaut)
+- ✅ Rapide et léger
+- ✅ Aucune dépendance externe
+- ✅ Parfait pour termes techniques
+- 📄 Fichiers : `docker-compose.yml`, `Dockerfile.arm64`
+
+### Mode Neuronal (Sentence Transformers)
+- ✅ Meilleure qualité sémantique
+- ✅ Comprend les synonymes
+- ⚠️ Nécessite Python 3.8+
+- 📄 Fichiers : `docker-compose.neuronal.yml`, `Dockerfile.arm64.neuronal`
+- 📖 Guide : [ACTIVATION-MODELE-NEURONAL.md](ACTIVATION-MODELE-NEURONAL.md)
+
 ## 📋 Prérequis
 
 ### Matériel
@@ -61,7 +76,9 @@ KNOWLEDGE_PATH=../../knowledge
 
 ## 🚀 Déploiement
 
-### Méthode 1 : Script automatique (recommandé)
+### Mode TF-IDF (par défaut)
+
+#### Méthode 1 : Script automatique (recommandé)
 
 ```bash
 ./deploy.sh
@@ -74,7 +91,7 @@ Le script va :
 4. ✅ Vérifier la santé de l'application
 5. ✅ Afficher les logs
 
-### Méthode 2 : Manuel
+#### Méthode 2 : Manuel
 
 ```bash
 # Construire l'image
@@ -86,6 +103,30 @@ docker-compose up -d
 # Vérifier les logs
 docker-compose logs -f
 ```
+
+### Mode Neuronal (Sentence Transformers)
+
+**📖 Guide complet** : [ACTIVATION-MODELE-NEURONAL.md](ACTIVATION-MODELE-NEURONAL.md)
+
+#### Déploiement rapide
+
+```bash
+# 1. Installer Python (si nécessaire)
+sudo apt update && sudo apt install -y python3 python3-pip python3-venv
+
+# 2. Déployer avec le script automatique
+./deploy-neuronal.sh
+```
+
+Le script va :
+1. ✅ Vérifier Python et l'espace disque
+2. ✅ Créer le cache pour le modèle
+3. ✅ Construire l'image avec Python
+4. ✅ Télécharger le modèle (~420 MB)
+5. ✅ Démarrer les services
+6. ✅ Tester l'API
+
+**⚠️ Attention** : Le premier déploiement prend 10-20 minutes (téléchargement du modèle).
 
 ## 📊 Vérification
 
@@ -181,11 +222,15 @@ docker run --rm mo5-rag-tests:arm64
 
 ```
 pi-nas/
-├── docker-compose.yml       # Configuration Docker Compose
-├── Dockerfile.arm64         # Image Docker ARM64 (production)
-├── Dockerfile.arm64.tests   # Image Docker ARM64 (tests)
-├── deploy.sh                # Script de déploiement
-└── README.md                # Ce fichier
+├── docker-compose.yml              # Configuration Docker Compose (TF-IDF)
+├── docker-compose.neuronal.yml     # Configuration Docker Compose (Neuronal)
+├── Dockerfile.arm64                # Image Docker ARM64 (TF-IDF)
+├── Dockerfile.arm64.neuronal       # Image Docker ARM64 (Neuronal + Python)
+├── Dockerfile.arm64.tests          # Image Docker ARM64 (tests)
+├── deploy.sh                       # Script de déploiement (TF-IDF)
+├── deploy-neuronal.sh              # Script de déploiement (Neuronal)
+├── ACTIVATION-MODELE-NEURONAL.md   # Guide d'activation du modèle neuronal
+└── README.md                       # Ce fichier
 ```
 
 ## 🔐 Sécurité
@@ -209,16 +254,22 @@ sudo ufw enable
 ### Optimisations appliquées
 
 - ✅ Image multi-stage pour réduire la taille
-- ✅ Embeddings TF-IDF locaux (pas d'API externe)
+- ✅ Embeddings locaux (TF-IDF ou Sentence Transformers)
 - ✅ PostgreSQL avec pgvector optimisé
-- ✅ Singleton pour le service TF-IDF
+- ✅ Cache du modèle HuggingFace (mode neuronal)
 - ✅ API ASP.NET Core optimisée
 
 ### Ressources utilisées
 
+#### Mode TF-IDF
 - **RAM** : ~1.5GB (API + PostgreSQL)
 - **CPU** : ~10-20% au repos, ~50-80% pendant l'indexation
 - **Disque** : ~2GB (images + données)
+
+#### Mode Neuronal
+- **RAM** : ~2GB (API + PostgreSQL + modèle)
+- **CPU** : ~20-30% au repos, ~80-100% pendant l'indexation
+- **Disque** : ~2.5GB (images + données + modèle ~500MB)
 
 ## 🆘 Dépannage
 

@@ -188,7 +188,7 @@ public class LocalEmbeddingService : IEmbeddingService, IDisposable
             StartInfo = new ProcessStartInfo
             {
                 FileName = _pythonPath,
-                Arguments = $"-m pip install {packageName}",
+                Arguments = $"-m pip install --break-system-packages {packageName}",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -199,7 +199,7 @@ public class LocalEmbeddingService : IEmbeddingService, IDisposable
         process.Start();
         var output = process.StandardOutput.ReadToEnd();
         var error = process.StandardError.ReadToEnd();
-        process.WaitForExit(120000); // 2 minutes timeout
+        process.WaitForExit(600000); // 10 minutes timeout (Raspberry Pi is slow)
 
         if (process.ExitCode != 0)
         {
@@ -229,94 +229,126 @@ public class LocalEmbeddingService : IEmbeddingService, IDisposable
 
     private string CreatePythonScript(IEnumerable<string> texts)
     {
+        // Serialize texts to JSON and encode as base64 to avoid escaping issues
         var textsJson = JsonSerializer.Serialize(texts);
-        
+        var textsJsonBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(textsJson));
+
         return $@"
 import json
 import sys
+import base64
 from sentence_transformers import SentenceTransformer
 
 try:
     # Load model (cached after first use)
     model = SentenceTransformer('{_modelName}')
-    
-    # Input texts
-    texts = {textsJson}
-    
+
+    # Decode input texts from base64
+    texts_json_base64 = '{textsJsonBase64}'
+    texts_json = base64.b64decode(texts_json_base64).decode('utf-8')
+    texts = json.loads(texts_json)
+
+    # Filter out None and empty strings
+    texts = [t for t in texts if t and isinstance(t, str) and t.strip()]
+
+    if not texts:
+        print('Error: No valid texts to encode', file=sys.stderr)
+        sys.exit(1)
+
     # Generate embeddings
     embeddings = model.encode(texts, convert_to_numpy=True)
-    
+
     # Convert to list and output as JSON
     result = embeddings.tolist()
     print(json.dumps(result))
-    
+
 except Exception as e:
+    import traceback
     print(f'Error: {{e}}', file=sys.stderr)
+    traceback.print_exc(file=sys.stderr)
     sys.exit(1)
 ";
     }
 
     private async Task<string> ExecutePythonScriptAsync(string script, CancellationToken cancellationToken)
     {
-        var process = new Process
+        // Create a temporary file for the script to avoid stdin issues
+        var tempFile = Path.Combine(Path.GetTempPath(), $"embedding_script_{Guid.NewGuid()}.py");
+
+        try
         {
-            StartInfo = new ProcessStartInfo
+            // Write script to temporary file
+            await File.WriteAllTextAsync(tempFile, script, Encoding.UTF8, cancellationToken);
+
+            var process = new Process
             {
-                FileName = _pythonPath,
-                Arguments = "-c",
-                UseShellExecute = false,
-                RedirectStandardInput = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-                StandardInputEncoding = Encoding.UTF8,
-                StandardOutputEncoding = Encoding.UTF8
-            }
-        };
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = _pythonPath,
+                    Arguments = $"\"{tempFile}\"",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    StandardOutputEncoding = Encoding.UTF8
+                }
+            };
 
-        var tcs = new TaskCompletionSource<string>();
-        var output = new StringBuilder();
-        var error = new StringBuilder();
+            var tcs = new TaskCompletionSource<string>();
+            var output = new StringBuilder();
+            var error = new StringBuilder();
 
-        process.OutputDataReceived += (sender, e) =>
-        {
-            if (e.Data != null) output.AppendLine(e.Data);
-        };
-
-        process.ErrorDataReceived += (sender, e) =>
-        {
-            if (e.Data != null) error.AppendLine(e.Data);
-        };
-
-        process.Exited += (sender, e) =>
-        {
-            if (process.ExitCode == 0)
+            process.OutputDataReceived += (sender, e) =>
             {
-                tcs.SetResult(output.ToString().Trim());
-            }
-            else
+                if (e.Data != null) output.AppendLine(e.Data);
+            };
+
+            process.ErrorDataReceived += (sender, e) =>
             {
-                tcs.SetException(new InvalidOperationException($"Python script failed: {error}"));
+                if (e.Data != null) error.AppendLine(e.Data);
+            };
+
+            process.Exited += (sender, e) =>
+            {
+                if (process.ExitCode == 0)
+                {
+                    tcs.SetResult(output.ToString().Trim());
+                }
+                else
+                {
+                    tcs.SetException(new InvalidOperationException($"Python script failed: {error}"));
+                }
+            };
+
+            process.EnableRaisingEvents = true;
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+
+            // Wait for completion with cancellation support
+            using (cancellationToken.Register(() =>
+            {
+                try { process.Kill(); } catch { }
+                tcs.TrySetCanceled();
+            }))
+            {
+                return await tcs.Task;
             }
-        };
-
-        process.EnableRaisingEvents = true;
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-
-        // Write script to stdin
-        await process.StandardInput.WriteAsync(script);
-        process.StandardInput.Close();
-
-        // Wait for completion with cancellation support
-        using (cancellationToken.Register(() => 
+        }
+        finally
         {
-            try { process.Kill(); } catch { }
-            tcs.TrySetCanceled();
-        }))
-        {
-            return await tcs.Task;
+            // Clean up temporary file
+            try
+            {
+                if (File.Exists(tempFile))
+                {
+                    File.Delete(tempFile);
+                }
+            }
+            catch
+            {
+                // Ignore cleanup errors
+            }
         }
     }
 
