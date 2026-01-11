@@ -26,6 +26,31 @@ See the **[Deployment Guide](deployment/README.md)** for detailed instructions.
 
 ---
 
+## 🌐 Public RAG Server Available
+
+The MO5 RAG server is now **publicly deployed and accessible on the Internet**.
+
+👉 https://retrocomputing-ai.cloud/
+
+This means that **you no longer need to host your own RAG server** to use the MCP server or benefit from AI-assisted MO5 development.
+
+The public instance provides:
+- semantic search over the MO5 knowledge base
+- continuously updated documentation
+- a stable API endpoint usable from coding agents
+
+If you just want to **use the MCP server**, you can directly point it to the public RAG instance and get started immediately.
+
+Self-hosting the RAG server is still possible if you want to:
+- experiment with the internals
+- modify the ingestion pipeline
+- run everything offline
+- or customize the knowledge base
+
+But for most users, the hosted version should be sufficient.
+
+---
+
 ## ⚖️ Solutions Considered
 
 ### 1. `.ai.md` or Static Context Files
