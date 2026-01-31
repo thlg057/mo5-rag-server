@@ -13,17 +13,6 @@ The goal is to **enhance developer productivity** by allowing AI tools (such as 
 
 This will make it easier for anyone to build MO5 applications while benefiting from **AI-assisted coding with domain-specific knowledge**.
 
-## 🚀 Quick Start
-
-**Choose your deployment environment:**
-
-- **[Raspberry Pi NAS](deployment/pi-nas/README.md)** - Optimized for ARM64 (Raspberry Pi 4/5)
-- **[Azure Cloud](deployment/azure/README.md)** - Production deployment on Azure Container Instances
-- **[Local Development](deployment/local-dev/README.md)** - Docker Compose for local development
-- **[Portainer](deployment/portainer/README.md)** - Web UI for Docker management
-
-See the **[Deployment Guide](deployment/README.md)** for detailed instructions.
-
 ---
 
 ## 🌐 Public RAG Server Available

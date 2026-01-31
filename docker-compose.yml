@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # --- Base de données Vectorielle ---
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: mo5-rag-postgres
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mo5-rag-network
+    restart: unless-stopped
+
+  # --- Service d'Embedding (Python E5) ---
+  embedding-api:
+    build:
+      context: ./embedding-service
+    container_name: mo5-embedding-api
+    environment:
+      - MODEL_NAME=${EMBEDDING_MODEL}
+    volumes:
+      - ./data/huggingface-cache:/root/.cache/huggingface
+    networks:
+      - mo5-rag-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # --- Serveur RAG (.NET) ---
+  api:
+    build:
+      context: ./api-sources
+      dockerfile: Dockerfile
+    container_name: mo5-rag-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=${DB_NAME};Username=${DB_USER};Password=${DB_PASSWORD}
+      - ApiKeySettings__Key=${API_KEY}
+      - EmbeddingService__Provider=Remote
+      - EmbeddingService__VectorDimensions=384
+      - RagSettings__KnowledgeBasePath=/app/knowledge
+      - EmbeddingService__Endpoint=http://mo5-embedding-api:5000/embed
+    volumes:
+      - ./knowledge:/app/knowledge
+    depends_on:
+      postgres:
+        condition: service_healthy
+      embedding-api:
+        condition: service_healthy
+    networks:
+      - mo5-rag-network
+    restart: unless-stopped
+
+networks:
+  mo5-rag-network:
+    driver: bridge
