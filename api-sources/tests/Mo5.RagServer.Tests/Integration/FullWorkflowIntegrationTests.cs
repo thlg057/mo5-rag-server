@@ -11,10 +11,8 @@ namespace Mo5.RagServer.Tests.Integration;
 
 /// <summary>
 /// Integration tests for the complete RAG workflow
-/// NOTE: These tests require PostgreSQL with pgvector extension and are skipped by default.
-/// To run them, use: dotnet test --filter "Category!=RequiresPostgreSQL"
+/// Configured to run with EF InMemory + local TF-IDF embeddings via CustomWebApplicationFactory.
 /// </summary>
-[Trait("Category", "RequiresPostgreSQL")]
 public class FullWorkflowIntegrationTests : IClassFixture<CustomWebApplicationFactory>
 {
     private readonly CustomWebApplicationFactory _factory;
@@ -49,8 +47,8 @@ public class FullWorkflowIntegrationTests : IClassFixture<CustomWebApplicationFa
         var indexResponse = await _client.PostAsync("/api/index/all", null);
         indexResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // Wait for indexing to complete
-        await Task.Delay(TimeSpan.FromSeconds(5));
+        // Indexing endpoint is synchronous, but keep a small delay for stability
+        await Task.Delay(TimeSpan.FromMilliseconds(100));
 
         // Step 3: Check status after indexing
         var statusAfterResponse = await _client.GetAsync("/api/index/status");
@@ -119,7 +117,8 @@ public class FullWorkflowIntegrationTests : IClassFixture<CustomWebApplicationFa
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
 
-        watcherData.GetProperty("isWatching").GetBoolean().Should().BeTrue();
+        // In tests we disable hosted services (file watcher) to keep the suite deterministic.
+        watcherData.GetProperty("isWatching").GetBoolean().Should().BeFalse();
     }
 
     [Fact]

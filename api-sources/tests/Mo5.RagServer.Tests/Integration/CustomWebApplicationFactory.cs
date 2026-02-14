@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
-using Mo5.RagServer.Core.Entities;
+using Mo5.RagServer.Core.Interfaces;
+using Mo5.RagServer.Infrastructure.Data;
+using Mo5.RagServer.Infrastructure.Services;
 
 namespace Mo5.RagServer.Tests.Integration;
 
@@ -14,148 +17,109 @@ namespace Mo5.RagServer.Tests.Integration;
 /// </summary>
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
+    private const string TestApiKey = "test-api-key";
+    private readonly string _knowledgeBasePath;
+    private readonly string _databaseName;
+
+    public CustomWebApplicationFactory()
+    {
+        _knowledgeBasePath = CreateTestKnowledgeBase();
+        _databaseName = $"InMemoryTestDb-{Guid.NewGuid():N}";
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.UseEnvironment("Testing");
+
+        builder.ConfigureAppConfiguration((context, config) =>
+        {
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["RagSettings:KnowledgeBasePath"] = _knowledgeBasePath,
+                ["EmbeddingService:Provider"] = "TfIdf",
+                ["ApiKeySettings:Key"] = TestApiKey,
+
+                // Provide a dummy connection string so parts of the app that read it don't crash.
+                ["ConnectionStrings:DefaultConnection"] = "Host=localhost;Database=mo5_rag_test;Username=test;Password=test"
+            });
+        });
+
         builder.ConfigureServices(services =>
         {
-            // Remove the existing DbContext registration
-            var descriptor = services.SingleOrDefault(
-                d => d.ServiceType == typeof(DbContextOptions<TestRagDbContext>));
+            // Replace PostgreSQL DbContext with EF InMemory
+            services.RemoveAll(typeof(DbContextOptions<RagDbContext>));
+            services.RemoveAll(typeof(RagDbContext));
 
-            if (descriptor != null)
+            services.AddDbContext<RagDbContext>(options =>
             {
-                services.Remove(descriptor);
-            }
-
-            // Remove the RagDbContext registration
-            var contextDescriptor = services.SingleOrDefault(
-                d => d.ServiceType == typeof(TestRagDbContext));
-
-            if (contextDescriptor != null)
-            {
-                services.Remove(contextDescriptor);
-            }
-
-            // Add in-memory database for testing with custom DbContext
-            services.AddDbContext<TestRagDbContext>(options =>
-            {
-                options.UseInMemoryDatabase("InMemoryTestDb");
+                options.UseInMemoryDatabase(_databaseName);
             });
 
             // Disable background services that might cause issues in tests
             services.RemoveAll(typeof(IHostedService));
 
+            // Ensure embeddings don't require external HTTP services in tests
+            services.RemoveAll(typeof(IEmbeddingService));
+            services.AddSingleton<IEmbeddingService, SimpleTfIdfEmbeddingService>();
+
             // Build the service provider
             var sp = services.BuildServiceProvider();
 
-            // Create a scope to obtain a reference to the database context
+            // Create a scope to initialize TF-IDF vocab and index the test knowledge base
             using (var scope = sp.CreateScope())
             {
                 var scopedServices = scope.ServiceProvider;
-                var db = scopedServices.GetRequiredService<TestRagDbContext>();
 
-                // Ensure the database is created
+                var db = scopedServices.GetRequiredService<RagDbContext>();
                 db.Database.EnsureCreated();
+
+                // Initialize TF-IDF with the whole corpus BEFORE indexing so embeddings are stable.
+                var embeddingService = scopedServices.GetRequiredService<IEmbeddingService>();
+                if (embeddingService is SimpleTfIdfEmbeddingService tfidf)
+                {
+                    var corpus = Directory
+                        .GetFiles(_knowledgeBasePath, "*.md", SearchOption.AllDirectories)
+                        .Select(File.ReadAllText)
+                        .ToList();
+
+                    tfidf.InitializeWithCorpusAsync(corpus).GetAwaiter().GetResult();
+                }
+
+                var documentService = scopedServices.GetRequiredService<IDocumentService>();
+                documentService.IndexDocumentsAsync(_knowledgeBasePath, CancellationToken.None)
+                    .GetAwaiter()
+                    .GetResult();
             }
         });
+    }
 
-        builder.UseEnvironment("Testing");
+    protected override void ConfigureClient(HttpClient client)
+    {
+        base.ConfigureClient(client);
+
+        // Add API key for endpoints protected by the ApiKey auth scheme.
+        client.DefaultRequestHeaders.Remove("X-Api-Key");
+        client.DefaultRequestHeaders.Add("X-Api-Key", TestApiKey);
+    }
+
+    private static string CreateTestKnowledgeBase()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "mo5-rag-tests", "knowledge", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+
+        // The folder names are used as tags.
+        WriteMd(root, Path.Combine("Thomson", "MO5", "graphics-mode.md"), "# Graphics mode\n\nThomson MO5 graphics mode and display settings.");
+        WriteMd(root, Path.Combine("Assembly", "6809", "address-calculation.md"), "# Address calculation\n\n6809 processor address calculation examples in assembly.");
+        WriteMd(root, Path.Combine("C", "c-programming.md"), "# C programming\n\nC programming examples for the Thomson MO5.");
+        WriteMd(root, Path.Combine("Manuals", "overview.md"), "# Overview\n\nMO5 overview document.");
+
+        return root;
+    }
+
+    private static void WriteMd(string root, string relativePath, string content)
+    {
+        var fullPath = Path.Combine(root, relativePath);
+        Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
+        File.WriteAllText(fullPath, content);
     }
 }
-
-/// <summary>
-/// Test-specific DbContext that ignores Vector properties for in-memory database
-/// </summary>
-public class TestRagDbContext : DbContext
-{
-    public TestRagDbContext(DbContextOptions<TestRagDbContext> options) : base(options)
-    {
-    }
-
-    public DbSet<Document> Documents { get; set; }
-    public DbSet<DocumentChunk> DocumentChunks { get; set; }
-    public DbSet<Tag> Tags { get; set; }
-    public DbSet<DocumentTag> DocumentTags { get; set; }
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        base.OnModelCreating(modelBuilder);
-
-        // Document configuration
-        modelBuilder.Entity<Document>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.FileName).IsRequired().HasMaxLength(255);
-            entity.Property(e => e.FilePath).IsRequired().HasMaxLength(500);
-            entity.Property(e => e.Title).IsRequired().HasMaxLength(500);
-            entity.Property(e => e.Content).IsRequired();
-            entity.Property(e => e.ContentHash).IsRequired().HasMaxLength(64);
-            entity.Property(e => e.CreatedAt).IsRequired();
-            entity.Property(e => e.UpdatedAt).IsRequired();
-            entity.Property(e => e.LastModified).IsRequired();
-            entity.Property(e => e.IsActive).IsRequired();
-
-            entity.HasIndex(e => e.FileName);
-            entity.HasIndex(e => e.FilePath).IsUnique();
-            entity.HasIndex(e => e.ContentHash);
-            entity.HasIndex(e => e.IsActive);
-        });
-
-        // DocumentChunk configuration - IGNORE Embedding for in-memory database
-        modelBuilder.Entity<DocumentChunk>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.DocumentId).IsRequired();
-            entity.Property(e => e.ChunkIndex).IsRequired();
-            entity.Property(e => e.Content).IsRequired();
-            // IGNORE Embedding property for in-memory database
-            entity.Ignore(e => e.Embedding);
-            entity.Property(e => e.StartPosition).IsRequired();
-            entity.Property(e => e.EndPosition).IsRequired();
-            entity.Property(e => e.Length).IsRequired();
-            entity.Property(e => e.TokenCount).IsRequired();
-            entity.Property(e => e.SectionHeading).HasMaxLength(500);
-            entity.Property(e => e.CreatedAt).IsRequired();
-
-            entity.HasOne(e => e.Document)
-                  .WithMany(d => d.Chunks)
-                  .HasForeignKey(e => e.DocumentId)
-                  .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasIndex(e => e.DocumentId);
-            entity.HasIndex(e => new { e.DocumentId, e.ChunkIndex }).IsUnique();
-        });
-
-        // Tag configuration
-        modelBuilder.Entity<Tag>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
-            entity.Property(e => e.Description).HasMaxLength(500);
-            entity.Property(e => e.Category).IsRequired().HasMaxLength(100);
-            entity.Property(e => e.Color).IsRequired().HasMaxLength(7);
-            entity.Property(e => e.CreatedAt).IsRequired();
-            entity.Property(e => e.IsActive).IsRequired();
-
-            entity.HasIndex(e => e.Name).IsUnique();
-            entity.HasIndex(e => e.Category);
-        });
-
-        // DocumentTag configuration (many-to-many)
-        modelBuilder.Entity<DocumentTag>(entity =>
-        {
-            entity.HasKey(e => new { e.DocumentId, e.TagId });
-
-            entity.HasOne(e => e.Document)
-                  .WithMany(d => d.DocumentTags)
-                  .HasForeignKey(e => e.DocumentId)
-                  .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasOne(e => e.Tag)
-                  .WithMany(t => t.DocumentTags)
-                  .HasForeignKey(e => e.TagId)
-                  .OnDelete(DeleteBehavior.Cascade);
-        });
-    }
-}
-

@@ -9,7 +9,6 @@ using Mo5.RagServer.Core.Models;
 using Mo5.RagServer.Core.Services;
 using Mo5.RagServer.Infrastructure.Data;
 using Pgvector;
-using Pgvector.EntityFrameworkCore;
 
 namespace Mo5.RagServer.Infrastructure.Services;
 
@@ -20,8 +19,6 @@ public class DocumentService : IDocumentService
 {
     private readonly RagDbContext _context;
     private readonly IEmbeddingService _embeddingService;
-    private readonly ITextChunker _textChunker;
-    private readonly ITagDetectionService _tagDetectionService;
     private readonly ILogger<DocumentService> _logger;
     private readonly IConfiguration _configuration;
     private readonly IIngestionStatsService? _statsService;
@@ -29,16 +26,12 @@ public class DocumentService : IDocumentService
     public DocumentService(
         RagDbContext context,
         IEmbeddingService embeddingService,
-        ITextChunker textChunker,
-        ITagDetectionService tagDetectionService,
         ILogger<DocumentService> logger,
         IConfiguration configuration,
         IIngestionStatsService? statsService = null)
     {
         _context = context;
         _embeddingService = embeddingService;
-        _textChunker = textChunker;
-        _tagDetectionService = tagDetectionService;
         _logger = logger;
         _configuration = configuration;
         _statsService = statsService;
@@ -165,10 +158,24 @@ public class DocumentService : IDocumentService
 
     private async Task GenerateChunksAsync(Document document, CancellationToken cancellationToken)
     {
-        var chunkSize = _configuration.GetValue<int>("RagSettings:ChunkSize", 1000);
-        var chunkOverlap = _configuration.GetValue<int>("RagSettings:ChunkOverlap", 200);
+        // Nouveau fonctionnement: chaque fichier .md est une information atomique et ne doit pas être splitté.
+        // On génère donc 1 chunk = 1 fichier.
+        var rawContent = document.Content ?? string.Empty;
+        var trimmedContent = rawContent.Trim();
 
-        var textChunks = _textChunker.ChunkMarkdown(document.Content, chunkSize, chunkOverlap);
+        var textChunks = string.IsNullOrWhiteSpace(trimmedContent)
+            ? new List<TextChunk>()
+            : new List<TextChunk>
+            {
+                new()
+                {
+                    Content = trimmedContent,
+                    StartPosition = 0,
+                    EndPosition = rawContent.Length,
+                    SectionHeading = null,
+                    EstimatedTokens = EstimateTokensRough(trimmedContent)
+                }
+            };
         
         if (!textChunks.Any())
         {
@@ -221,9 +228,9 @@ public class DocumentService : IDocumentService
 
     private async Task AssignTagsAsync(Document document, CancellationToken cancellationToken)
     {
-        var availableTags = await _context.Tags.Where(t => t.IsActive).ToListAsync(cancellationToken);
-        var detectedTags = await _tagDetectionService.DetectTagsAsync(
-            document.FileName, document.Content, availableTags);
+        // Nouveau fonctionnement: les tags sont dérivés de l'arborescence.
+        // Chaque répertoire du chemin relatif devient un tag.
+        var tagNames = ExtractTagNamesFromRelativePath(document.FilePath);
 
         // Remove existing tags if updating
         var existingDocumentTags = document.DocumentTags.ToList();
@@ -232,23 +239,84 @@ public class DocumentService : IDocumentService
             document.DocumentTags.Remove(existingTag);
         }
 
-        // Add detected tags
-        foreach (var detectedTag in detectedTags)
+        if (tagNames.Count == 0)
         {
+            _logger.LogDebug("No path-based tags found for document: {Title} ({FilePath})", document.Title, document.FilePath);
+            return;
+        }
+
+        // Load existing tags (active or not) so we can upsert missing folder tags.
+        var allTags = await _context.Tags.ToListAsync(cancellationToken);
+        var tagsByLowerName = allTags
+            .GroupBy(t => t.Name.ToLowerInvariant())
+            .ToDictionary(g => g.Key, g => g.First());
+
+        foreach (var tagName in tagNames.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            var key = tagName.ToLowerInvariant();
+            if (!tagsByLowerName.TryGetValue(key, out var tag))
+            {
+                tag = new Tag
+                {
+                    Id = Guid.NewGuid(),
+                    Name = tagName,
+                    Category = "folder",
+                    Description = string.Empty,
+                    Color = "#6B7280",
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                };
+                _context.Tags.Add(tag);
+                tagsByLowerName[key] = tag;
+            }
+            else if (!tag.IsActive)
+            {
+                // If a tag exists but was deactivated, re-activate it since it's present in the folder structure.
+                tag.IsActive = true;
+            }
+
             var documentTag = new DocumentTag
             {
                 DocumentId = document.Id,
-                TagId = detectedTag.Tag.Id,
+                TagId = tag.Id,
                 AssignedAt = DateTime.UtcNow,
-                AssignmentSource = detectedTag.Source,
-                Confidence = detectedTag.Confidence
+                AssignmentSource = "path",
+                Confidence = 1.0f
             };
 
             document.DocumentTags.Add(documentTag);
         }
 
-        _logger.LogDebug("Assigned {TagCount} tags to document: {Title}", 
-            detectedTags.Count, document.Title);
+        _logger.LogDebug("Assigned {TagCount} path-based tags to document: {Title}", 
+            document.DocumentTags.Count, document.Title);
+    }
+
+    private static List<string> ExtractTagNamesFromRelativePath(string relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath))
+            return new List<string>();
+
+        // Document.FilePath is stored with '/' separators, but be defensive.
+        var normalized = relativePath.Replace('\\', '/').Trim('/');
+        var parts = normalized.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        // If there is no directory (file at root), no tags.
+        if (parts.Length <= 1)
+            return new List<string>();
+
+        // Every directory segment is a tag name.
+        return parts
+            .Take(parts.Length - 1)
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .ToList();
+    }
+
+    private static int EstimateTokensRough(string text)
+    {
+        // Rough estimation: 1 token ≈ 4 characters (same heuristic as MarkdownTextChunker)
+        if (string.IsNullOrEmpty(text))
+            return 0;
+        return (int)Math.Ceiling(text.Length / 4.0);
     }
 
     private string ComputeContentHash(string content)

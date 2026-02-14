@@ -65,8 +65,20 @@ builder.Services.AddAuthentication("ApiKey")
         "ApiKey", options => { });
 
 // Add Health Checks
-builder.Services.AddHealthChecks()
-    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!);
+// In tests we don't want to depend on an actual PostgreSQL instance.
+var healthChecks = builder.Services.AddHealthChecks();
+if (builder.Environment.IsEnvironment("Testing"))
+{
+    healthChecks.AddCheck("self", () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy());
+}
+else
+{
+    var cs = builder.Configuration.GetConnectionString("DefaultConnection");
+    if (!string.IsNullOrWhiteSpace(cs))
+    {
+        healthChecks.AddNpgSql(cs);
+    }
+}
 
 var app = builder.Build();
 

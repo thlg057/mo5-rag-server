@@ -188,7 +188,16 @@ public class SimpleTfIdfEmbeddingService : IEmbeddingService
     {
         var corpusList = corpus.ToList();
         _logger.LogInformation("Initializing TF-IDF with corpus of {Count} documents", corpusList.Count);
-        
+
+        // Allow re-initialization with a full corpus (e.g. after indexing) so that IDF/vocabulary
+        // reflects the whole dataset, not only the first embedding call.
+        lock (_lock)
+        {
+            _vocabulary.Clear();
+            _idfScores.Clear();
+            _isInitialized = false;
+        }
+
         EnsureVocabularyBuilt(corpusList);
         
         await Task.CompletedTask;

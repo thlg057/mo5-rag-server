@@ -10,9 +10,18 @@ public static class DbInitializer
     {
         try
         {
-            // Ensure database is created and migrations are applied
-            await context.Database.MigrateAsync();
-            logger.LogInformation("Database migrations applied successfully");
+            // Ensure database is created and migrations are applied.
+            // In tests we often use the EF InMemory provider which doesn't support relational migrations.
+            if (context.Database.IsRelational())
+            {
+                await context.Database.MigrateAsync();
+                logger.LogInformation("Database migrations applied successfully");
+            }
+            else
+            {
+                await context.Database.EnsureCreatedAsync();
+                logger.LogInformation("Database ensured created successfully (non-relational provider)");
+            }
 
             // Seed default tags if they don't exist
             await SeedDefaultTagsAsync(context, logger);

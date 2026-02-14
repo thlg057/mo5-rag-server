@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using Mo5.RagServer.Core.Entities;
 using Mo5.RagServer.Core.Interfaces;
 using Mo5.RagServer.Core.Models;
-using Mo5.RagServer.Core.Services;
 using Mo5.RagServer.Infrastructure.Data;
 using Mo5.RagServer.Infrastructure.Services;
 using Moq;
@@ -16,15 +15,11 @@ namespace Mo5.RagServer.Tests.Infrastructure.Services;
 
 /// <summary>
 /// Tests for DocumentService search functionality
-/// NOTE: These tests require PostgreSQL with pgvector extension and are skipped by default.
 /// </summary>
-[Trait("Category", "RequiresPostgreSQL")]
 public class DocumentServiceSearchTests : IDisposable
 {
     private readonly RagDbContext _context;
     private readonly Mock<IEmbeddingService> _mockEmbeddingService;
-    private readonly Mock<ITextChunker> _mockTextChunker;
-    private readonly Mock<ITagDetectionService> _mockTagDetectionService;
     private readonly Mock<ILogger<DocumentService>> _mockLogger;
     private readonly Mock<IConfiguration> _mockConfiguration;
     private readonly DocumentService _documentService;
@@ -37,16 +32,12 @@ public class DocumentServiceSearchTests : IDisposable
 
         _context = new RagDbContext(options);
         _mockEmbeddingService = new Mock<IEmbeddingService>();
-        _mockTextChunker = new Mock<ITextChunker>();
-        _mockTagDetectionService = new Mock<ITagDetectionService>();
         _mockLogger = new Mock<ILogger<DocumentService>>();
         _mockConfiguration = new Mock<IConfiguration>();
 
         _documentService = new DocumentService(
             _context,
             _mockEmbeddingService.Object,
-            _mockTextChunker.Object,
-            _mockTagDetectionService.Object,
             _mockLogger.Object,
             _mockConfiguration.Object);
 

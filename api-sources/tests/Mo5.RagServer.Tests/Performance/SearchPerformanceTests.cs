@@ -11,9 +11,7 @@ namespace Mo5.RagServer.Tests.Performance;
 
 /// <summary>
 /// Performance tests for search operations
-/// NOTE: These tests require PostgreSQL with pgvector extension and are skipped by default.
 /// </summary>
-[Trait("Category", "RequiresPostgreSQL")]
 public class SearchPerformanceTests : IClassFixture<CustomWebApplicationFactory>
 {
     private readonly CustomWebApplicationFactory _factory;
@@ -113,8 +111,8 @@ public class SearchPerformanceTests : IClassFixture<CustomWebApplicationFactory>
         // Initial response should be quick (async operation)
         stopwatch.ElapsedMilliseconds.Should().BeLessThan(1000);
 
-        // Wait for indexing to complete and check status
-        await Task.Delay(TimeSpan.FromSeconds(10));
+        // Wait briefly for any async work and check status
+        await Task.Delay(TimeSpan.FromMilliseconds(100));
         
         var statusResponse = await _client.GetAsync("/api/index/status");
         statusResponse.StatusCode.Should().Be(HttpStatusCode.OK);

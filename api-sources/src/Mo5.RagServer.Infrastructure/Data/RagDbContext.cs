@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Mo5.RagServer.Core.Entities;
+using Pgvector;
+using System.Text.Json;
 
 namespace Mo5.RagServer.Infrastructure.Data;
 
@@ -17,6 +19,8 @@ public class RagDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+	    var isNpgsql = Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true;
 
         // Document configuration
         modelBuilder.Entity<Document>(entity =>
@@ -46,8 +50,22 @@ public class RagDbContext : DbContext
             entity.Property(e => e.DocumentId).IsRequired();
             entity.Property(e => e.ChunkIndex).IsRequired();
             entity.Property(e => e.Content).IsRequired();
-            // Vector size for local embeddings (384 dimensions)
-            entity.Property(e => e.Embedding).IsRequired().HasColumnType("vector(384)");
+	        // Vector embedding.
+	        // - In production we use PostgreSQL + pgvector.
+	        // - In unit tests we often use EF InMemory, which can't map Pgvector.Vector without a converter.
+	        var embeddingProperty = entity.Property(e => e.Embedding).IsRequired();
+	        if (isNpgsql)
+	        {
+	            // Vector size for local embeddings (384 dimensions)
+	            embeddingProperty.HasColumnType("vector(384)");
+	        }
+	        else
+	        {
+	            // Persist Vector as JSON float[] for providers that don't support pgvector.
+	            embeddingProperty.HasConversion(
+	                v => JsonSerializer.Serialize(v.ToArray(), (JsonSerializerOptions?)null),
+	                s => new Vector(JsonSerializer.Deserialize<float[]>(s, (JsonSerializerOptions?)null) ?? Array.Empty<float>()));
+	        }
             entity.Property(e => e.StartPosition).IsRequired();
             entity.Property(e => e.EndPosition).IsRequired();
             entity.Property(e => e.Length).IsRequired();
@@ -64,7 +82,10 @@ public class RagDbContext : DbContext
             // Indexes
             entity.HasIndex(e => e.DocumentId);
             entity.HasIndex(e => new { e.DocumentId, e.ChunkIndex }).IsUnique();
-            entity.HasIndex(e => e.Embedding).HasMethod("ivfflat").HasOperators("vector_cosine_ops");
+	        if (isNpgsql)
+	        {
+	            entity.HasIndex(e => e.Embedding).HasMethod("ivfflat").HasOperators("vector_cosine_ops");
+	        }
         });
 
         // Tag configuration
