@@ -52,6 +52,14 @@ services:
       - EmbeddingService__VectorDimensions=384
       - RagSettings__KnowledgeBasePath=/app/knowledge
       - EmbeddingService__Endpoint=http://mo5-embedding-api:5000/embed
+      # Rate Limiting
+      - RateLimitSettings__Enabled=${RATE_LIMIT_ENABLED:-true}
+      - RateLimitSettings__RequestsPerMinute=${RATE_LIMIT_REQUESTS_PER_MINUTE:-30}
+      - RateLimitSettings__RequestsPerHour=${RATE_LIMIT_REQUESTS_PER_HOUR:-1000}
+      # Anti-Brute-Force
+      - AntiBruteForceSettings__Enabled=${BRUTE_FORCE_ENABLED:-true}
+      - AntiBruteForceSettings__MaxFailedAttempts=${BRUTE_FORCE_MAX_ATTEMPTS:-3}
+      - AntiBruteForceSettings__BlockDurationMinutes=${BRUTE_FORCE_BLOCK_DURATION_MINUTES:-30}
     volumes:
       - ./knowledge:/app/knowledge
     depends_on:

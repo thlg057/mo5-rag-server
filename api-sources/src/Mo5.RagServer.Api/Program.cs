@@ -1,4 +1,7 @@
 using Microsoft.OpenApi.Models;
+using Mo5.RagServer.Api.Security.Middleware;
+using Mo5.RagServer.Api.Security.Models;
+using Mo5.RagServer.Api.Security.Services;
 using Mo5.RagServer.Infrastructure;
 using Serilog;
 
@@ -12,6 +15,15 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 builder.Host.UseSerilog();
+
+// Add security settings
+builder.Services.Configure<RateLimitSettings>(
+    builder.Configuration.GetSection(RateLimitSettings.SectionName));
+builder.Services.Configure<AntiBruteForceSettings>(
+    builder.Configuration.GetSection(AntiBruteForceSettings.SectionName));
+
+// Add security services (using in-memory implementation - can be replaced with Redis later)
+builder.Services.AddSingleton<IBlockedIpService, InMemoryBlockedIpService>();
 
 // Add services to the container
 builder.Services.AddControllers();
@@ -93,6 +105,13 @@ app.UseSwaggerUI(c =>
 
 app.UseCors("AllowAll");
 app.UseHttpsRedirection();
+
+// Security middlewares (order matters!)
+// 1. Rate limiting - blocks excessive requests
+app.UseMiddleware<RateLimitingMiddleware>();
+// 2. Anti-brute-force - blocks IPs that have failed too many auth attempts
+app.UseMiddleware<AntiBruteForceMiddleware>();
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
