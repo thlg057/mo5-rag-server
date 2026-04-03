@@ -15,6 +15,10 @@
     {
       "keywords": ["pattern", "best practice"],
       "boost": 0.08
+    },
+    {
+      "keywords": ["AABB", "hitbox"],
+      "boost": 0.05
     }
   ]
 }

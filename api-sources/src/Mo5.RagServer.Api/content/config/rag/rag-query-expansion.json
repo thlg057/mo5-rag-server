@@ -1,0 +1,108 @@
+{
+  "multiQuery": {
+    "maxQueries": 5,
+
+    "rules": [
+      {
+        "intent": "performance",
+        "keywords": [
+          "rame", "lent", "lag", "slow", "ralenti", "freeze",
+          "fps", "chute fps", "frame drop", "stutter",
+          "performance", "optimisation", "optimiser"
+        ],
+        "expansions": [
+          "game performance issue",
+          "game slow optimization",
+          "too many entities performance",
+          "cpu overload game loop",
+          "frame rate drop cause"
+        ]
+      },
+      {
+        "intent": "collision",
+        "keywords": [
+          "collision", "collisions", "hitbox", "overlap",
+          "touche", "contact", "detect collision"
+        ],
+        "expansions": [
+          "collision detection aabb",
+          "hitbox overlap detection",
+          "rectangle collision algorithm",
+          "collision optimization game",
+          "reduce collision checks"
+        ]
+      },
+      {
+        "intent": "many_entities",
+        "keywords": [
+          "ennemis", "ennemi", "enemy", "enemies",
+          "beaucoup", "plein", "multiple", "many"
+        ],
+        "expansions": [
+          "many enemies performance issue",
+          "too many objects game slowdown",
+          "entity scaling performance",
+          "object pool optimization",
+          "reduce entity processing"
+        ]
+      },
+      {
+        "intent": "rendering",
+        "keywords": [
+          "affichage", "draw", "render", "dessin",
+          "rafraichissement", "écran", "screen",
+          "flicker", "clignote"
+        ],
+        "expansions": [
+          "render optimization dirty rectangles",
+          "avoid full redraw every frame",
+          "partial screen update",
+          "reduce vram writes",
+          "optimize rendering loop"
+        ]
+      },
+      {
+        "intent": "memory",
+        "keywords": [
+          "memoire", "mémoire", "ram", "malloc",
+          "allocation", "buffer"
+        ],
+        "expansions": [
+          "memory constraint mo5",
+          "static memory allocation",
+          "no malloc embedded system",
+          "memory layout optimization",
+          "ram usage optimization"
+        ]
+      },
+      {
+        "intent": "game_loop",
+        "keywords": [
+          "boucle", "loop", "game loop",
+          "frame", "tick", "update"
+        ],
+        "expansions": [
+          "game loop optimization",
+          "fixed step loop",
+          "frame timing optimization",
+          "split work across frames",
+          "state machine game loop"
+        ]
+      },
+      {
+        "intent": "input",
+        "keywords": [
+          "clavier", "keyboard", "input",
+          "joystick", "controle"
+        ],
+        "expansions": [
+          "input handling optimization",
+          "scan keyboard vbl",
+          "joystick reading optimization",
+          "input latency issue",
+          "debounce input"
+        ]
+      }
+    ]
+  }
+}

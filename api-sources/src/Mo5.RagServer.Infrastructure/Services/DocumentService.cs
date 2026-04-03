@@ -390,7 +390,11 @@ public class DocumentService : IDocumentService
             _logger.LogDebug("Injected tags: {Tags}", string.Join(",", request.Tags));
 
             // 2. EMBEDDING
-            var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(queryText, cancellationToken);
+            // 1. Multi-query
+            var queries = ExpandToMultiQueries(queryText, _ragConfigService.GetQueryExpansion());
+            _logger.LogDebug("Expanded queries: {Queries}", string.Join(" | ", queries));
+            // 2. Embeddings multiples
+            var embeddings = await _embeddingService.GenerateEmbeddingsAsync([.. queries], cancellationToken);
 
             var baseQuery = _context.DocumentChunks
                 .Include(dc => dc.Document)
@@ -412,10 +416,16 @@ public class DocumentService : IDocumentService
 
             // 4. SCORING
             var scored = chunks
-                .Select(chunk => new
+                .Select(chunk =>
                 {
-                    Chunk = chunk,
-                    Score = CalculateCosineSimilarity(chunk.Embedding.ToArray(), queryEmbedding.ToArray())
+                    var chunkVector = chunk.Embedding.ToArray();
+                    var bestScore = embeddings
+                        .Max(e => CalculateCosineSimilarity(chunkVector, e.ToArray()));
+                    return new
+                    {
+                        Chunk = chunk,
+                        Score = bestScore
+                    };
                 })
                 .Where(x => x.Score >= request.MinSimilarityScore)
                 .OrderByDescending(x => x.Score)
@@ -632,5 +642,26 @@ public class DocumentService : IDocumentService
     {
         var parts = path.Split('/');
         return parts.Length > 3 ? parts[3] : "other";
+    }
+
+    private static List<string> ExpandToMultiQueries(string query, QueryExpansionConfig config)
+    {
+        var q = query.ToLowerInvariant();
+        var queries = new HashSet<string> { query };
+
+        foreach (var rule in config.MultiQuery.Rules)
+        {
+            if (rule.Keywords.Any(k => q.Contains(k)))
+            {
+                foreach (var expansion in rule.Expansions)
+                {
+                    queries.Add(expansion);
+                }
+            }
+        }
+
+        return queries
+            .Take(config.MultiQuery.MaxQueries)
+            .ToList();
     }
 }

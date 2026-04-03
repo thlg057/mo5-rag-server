@@ -13,6 +13,7 @@ public class RagConfigService : IRagConfigService
 
     private readonly Lazy<TagMappingConfig> _tagConfig;
     private readonly Lazy<RerankingConfig> _rerankConfig;
+    private readonly Lazy<QueryExpansionConfig> _queryExpansionConfig;
 
     public RagConfigService(
         IConfiguration configuration,
@@ -28,11 +29,17 @@ public class RagConfigService : IRagConfigService
         _rerankConfig = new Lazy<RerankingConfig>(
             LoadReranking,
             LazyThreadSafetyMode.ExecutionAndPublication);
+
+        _queryExpansionConfig = new Lazy<QueryExpansionConfig>(
+            LoadQueryExpansion,
+            LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
     public TagMappingConfig GetTagMapping() => _tagConfig.Value;
 
     public RerankingConfig GetReranking() => _rerankConfig.Value;
+
+    public QueryExpansionConfig GetQueryExpansion() => _queryExpansionConfig.Value;
 
     // --------------------------------------------------
     // LOADERS
@@ -86,6 +93,30 @@ public class RagConfigService : IRagConfigService
         }
     }
 
+    private QueryExpansionConfig LoadQueryExpansion()
+    {
+        try
+        {
+            var path = GetConfigPath("query-expansion.json");
+
+            if (!File.Exists(path))
+            {
+                _logger.LogWarning("Query expansion config not found at {Path}, using default.", path);
+                return GetDefaultQueryExpansion();
+            }
+
+            var json = File.ReadAllText(path);
+            var config = JsonSerializer.Deserialize<QueryExpansionConfig>(json);
+
+            return config ?? GetDefaultQueryExpansion();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load query expansion config.");
+            return GetDefaultQueryExpansion();
+        }
+    }
+
     // --------------------------------------------------
     // HELPERS
     // --------------------------------------------------
@@ -122,6 +153,41 @@ public class RagConfigService : IRagConfigService
                 new() { Keywords = ["problem", "problème"], Boost = 0.03f },
                 new() { Keywords = ["solution", "fix"], Boost = 0.05f },
                 new() { Keywords = ["optimize", "optimisation"], Boost = 0.04f }
+            }
+        };
+    }
+
+    private QueryExpansionConfig GetDefaultQueryExpansion()
+    {
+        return new QueryExpansionConfig
+        {
+            MultiQuery = new MultiQueryConfig
+            {
+                MaxQueries = 5,
+                Rules = new List<QueryRule>
+                {
+                    new()
+                    {
+                        Intent = "performance",
+                        Keywords = ["rame","lent","lag","slow","fps"],
+                        Expansions =
+                        [
+                            "game performance issue",
+                            "game slow optimization",
+                            "too many entities performance"
+                        ]
+                    },
+                    new()
+                    {
+                        Intent = "collision",
+                        Keywords = ["collision","hitbox","overlap"],
+                        Expansions =
+                        [
+                            "collision detection aabb",
+                            "hitbox overlap detection"
+                        ]
+                    }
+                }
             }
         };
     }

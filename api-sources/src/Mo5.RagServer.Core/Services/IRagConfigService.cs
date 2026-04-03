@@ -6,4 +6,5 @@ public interface IRagConfigService
 {
     TagMappingConfig GetTagMapping();
     RerankingConfig GetReranking();
+    QueryExpansionConfig GetQueryExpansion();
 }
