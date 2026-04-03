@@ -17,8 +17,8 @@
       "boost": 0.08
     },
     {
-      "keywords": ["AABB", "hitbox"],
-      "boost": 0.05
+      "keywords": ["contraintes", "limitations", "hardware"],
+      "boost": 0.1
     }
   ]
 }
