@@ -1,5 +1,29 @@
 # Use dirty rectangle rendering (Thomson MO5)
 
-Save and restore background for correct overlapping.
+## Goal
 
-Source: mo5_actor_dr.h
+Handle overlapping sprites efficiently.
+
+## Concept
+
+Save → restore → redraw.
+
+## Example
+
+```c
+save();
+restore();
+draw();
+```
+
+## When to use
+
+- overlapping sprites
+
+## Pitfalls
+
+- memory overhead
+
+## Related
+
+- form-only-rendering
