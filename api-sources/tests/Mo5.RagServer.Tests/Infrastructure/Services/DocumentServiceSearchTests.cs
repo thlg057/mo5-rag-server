@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Mo5.RagServer.Core.Entities;
 using Mo5.RagServer.Core.Interfaces;
 using Mo5.RagServer.Core.Models;
+using Mo5.RagServer.Core.Services;
 using Mo5.RagServer.Infrastructure.Data;
 using Mo5.RagServer.Infrastructure.Services;
 using Moq;
@@ -23,6 +24,7 @@ public class DocumentServiceSearchTests : IDisposable
     private readonly Mock<ILogger<DocumentService>> _mockLogger;
     private readonly Mock<IConfiguration> _mockConfiguration;
     private readonly DocumentService _documentService;
+    private readonly Mock<IRagConfigService> _mockRagConfigService;
 
     public DocumentServiceSearchTests()
     {
@@ -34,12 +36,14 @@ public class DocumentServiceSearchTests : IDisposable
         _mockEmbeddingService = new Mock<IEmbeddingService>();
         _mockLogger = new Mock<ILogger<DocumentService>>();
         _mockConfiguration = new Mock<IConfiguration>();
+        _mockRagConfigService = new Mock<IRagConfigService>();
 
         _documentService = new DocumentService(
             _context,
             _mockEmbeddingService.Object,
             _mockLogger.Object,
-            _mockConfiguration.Object);
+            _mockConfiguration.Object,
+            _mockRagConfigService.Object);
 
         SetupTestData();
     }

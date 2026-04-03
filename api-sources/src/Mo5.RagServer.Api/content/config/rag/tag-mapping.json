@@ -1,0 +1,48 @@
+{
+  "mapping": {
+    "performance": [
+      "rame",
+      "lent",
+      "slow",
+      "lag",
+      "fps",
+      "performance",
+      "ralenti",
+      "frame drop"
+    ],
+    "collision": [
+      "collision",
+      "hitbox",
+      "collide",
+      "overlap",
+      "contact"
+    ],
+    "rendering": [
+      "draw",
+      "render",
+      "affichage",
+      "sprite",
+      "graphique"
+    ],
+    "memory": [
+      "memory",
+      "ram",
+      "memoire",
+      "allocation"
+    ],
+    "input": [
+      "input",
+      "clavier",
+      "keyboard",
+      "joystick"
+    ],
+    "gameplay": [
+      "game",
+      "jeu",
+      "enemy",
+      "ennemi",
+      "bullet",
+      "projectile"
+    ]
+  }
+}

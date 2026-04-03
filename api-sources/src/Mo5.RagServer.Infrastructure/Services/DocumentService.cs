@@ -22,18 +22,21 @@ public class DocumentService : IDocumentService
     private readonly ILogger<DocumentService> _logger;
     private readonly IConfiguration _configuration;
     private readonly IIngestionStatsService? _statsService;
+    private readonly IRagConfigService _ragConfigService;
 
     public DocumentService(
         RagDbContext context,
         IEmbeddingService embeddingService,
         ILogger<DocumentService> logger,
         IConfiguration configuration,
+        IRagConfigService ragConfigService,
         IIngestionStatsService? statsService = null)
     {
         _context = context;
         _embeddingService = embeddingService;
         _logger = logger;
         _configuration = configuration;
+        _ragConfigService = ragConfigService;
         _statsService = statsService;
     }
 
@@ -370,13 +373,7 @@ public class DocumentService : IDocumentService
                 Query = request.Query,
                 Results = new List<SearchResult>(),
                 TotalResults = 0,
-                ExecutionTimeMs = 0,
-                Filters = new SearchFilters
-                {
-                    Tags = request.Tags,
-                    MinSimilarityScore = request.MinSimilarityScore,
-                    MaxResults = request.MaxResults
-                }
+                ExecutionTimeMs = 0
             };
         }
 
@@ -384,66 +381,88 @@ public class DocumentService : IDocumentService
 
         try
         {
-            // Generate embedding for the search query
-            var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(request.Query, cancellationToken);
+            var queryText = request.Query;
 
-            // Build the query
-            var query = _context.DocumentChunks
+            // 1. TAG INJECTION (plus agressif)
+            var tagConfig = _ragConfigService.GetTagMapping();
+            ApplyTagMapping(request, tagConfig);
+
+            _logger.LogDebug("Injected tags: {Tags}", string.Join(",", request.Tags));
+
+            // 2. EMBEDDING
+            var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(queryText, cancellationToken);
+
+            var baseQuery = _context.DocumentChunks
                 .Include(dc => dc.Document)
                 .ThenInclude(d => d.DocumentTags)
                 .ThenInclude(dt => dt.Tag)
                 .Where(dc => dc.Document.IsActive);
 
-            // Apply tag filters if specified
             if (request.Tags.Any())
             {
-                query = query.Where(dc => dc.Document.DocumentTags
-                    .Any(dt => request.Tags.Contains(dt.Tag.Name) && dt.Tag.IsActive));
+                baseQuery = baseQuery.Where(dc =>
+                    dc.Document.DocumentTags.Any(dt =>
+                        request.Tags.Contains(dt.Tag.Name) && dt.Tag.IsActive));
             }
 
-            // Perform vector similarity search
-            // Note: We fetch more results and sort in memory due to pgvector API limitations
-            var chunks = await query
-                .Take(1000) // Fetch a reasonable number of chunks
+            // 3. RECALL (réduit)
+            var chunks = await baseQuery
+                .Take(300)
                 .ToListAsync(cancellationToken);
 
-            // Sort by similarity in memory
-            chunks = chunks
-                .OrderByDescending(dc => CalculateCosineSimilarity(dc.Embedding.ToArray(), queryEmbedding.ToArray()))
-                .Take(request.MaxResults * 2)
-                .ToList();
-
-            // Filter by similarity score and convert to search results
-            var results = chunks
+            // 4. SCORING
+            var scored = chunks
                 .Select(chunk => new
                 {
                     Chunk = chunk,
-                    SimilarityScore = CalculateCosineSimilarity(chunk.Embedding.ToArray(), queryEmbedding.ToArray())
+                    Score = CalculateCosineSimilarity(chunk.Embedding.ToArray(), queryEmbedding.ToArray())
                 })
-                .Where(x => x.SimilarityScore >= request.MinSimilarityScore)
-                .Take(request.MaxResults)
-                .Select(x => CreateSearchResult(x.Chunk, x.SimilarityScore, request.IncludeMetadata, request.IncludeContext))
+                .Where(x => x.Score >= request.MinSimilarityScore)
+                .OrderByDescending(x => x.Score)
+                .Take(40)
                 .ToList();
 
-            var executionTime = (long)(DateTime.UtcNow - startTime).TotalMilliseconds;
+            // 5. DEDUP DOCUMENT (robuste)
+            var seenDocs = new HashSet<Guid>();
+
+            var dedup = scored
+                .Where(x => seenDocs.Add(x.Chunk.DocumentId))
+                .ToList();
+
+            // 6. DIVERSIFICATION PAR DOSSIER
+            var diversified = dedup
+                .GroupBy(x => GetCategory(x.Chunk.Document.FilePath))
+                .SelectMany(g => g.Take(2)) // max 2 par catégorie
+                .ToList();
+
+            // 7. RERANKING CONFIG
+            var rerankConfig = _ragConfigService.GetReranking();
+
+            var reranked = diversified
+                .Select(x => new
+                {
+                    x.Chunk,
+                    Score = ApplyReranking(x.Chunk.Content, x.Score, rerankConfig)
+                })
+                .OrderByDescending(x => x.Score)
+                .Take(request.MaxResults)
+                .ToList();
+
+            var results = reranked
+                .Select(x => CreateSearchResult(x.Chunk, x.Score, request.IncludeMetadata, request.IncludeContext))
+                .ToList();
 
             return new SearchResponse
             {
                 Query = request.Query,
                 Results = results,
-                TotalResults = results.Count(),
-                ExecutionTimeMs = executionTime,
-                Filters = new SearchFilters
-                {
-                    Tags = request.Tags,
-                    MinSimilarityScore = request.MinSimilarityScore,
-                    MaxResults = request.MaxResults
-                }
+                TotalResults = results.Count,
+                ExecutionTimeMs = (long)(DateTime.UtcNow - startTime).TotalMilliseconds
             };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to perform semantic search for query: {Query}", request.Query);
+            _logger.LogError(ex, "Search failed: {Query}", request.Query);
             throw;
         }
     }
@@ -578,5 +597,40 @@ public class DocumentService : IDocumentService
             return 0f;
 
         return (float)(dotProduct / (magnitudeA * magnitudeB));
+    }
+
+    private static void ApplyTagMapping(SearchRequest request, TagMappingConfig config)
+    {
+        var q = request.Query.ToLower();
+
+        foreach (var entry in config.Mapping)
+        {
+            if (entry.Value.Any(k => q.Contains(k)))
+            {
+                if (!request.Tags.Contains(entry.Key))
+                    request.Tags.Add(entry.Key);
+            }
+        }
+    }
+
+    private static float ApplyReranking(string content, float score, RerankingConfig config)
+    {
+        var lower = content.ToLower();
+
+        foreach (var rule in config.BoostRules)
+        {
+            if (rule.Keywords.Any(k => lower.Contains(k)))
+            {
+                score += rule.Boost;
+            }
+        }
+
+        return score;
+    }
+
+    private static string GetCategory(string path)
+    {
+        var parts = path.Split('/');
+        return parts.Length > 3 ? parts[3] : "other";
     }
 }

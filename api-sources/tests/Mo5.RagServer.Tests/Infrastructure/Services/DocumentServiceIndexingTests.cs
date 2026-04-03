@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Mo5.RagServer.Core.Interfaces;
+using Mo5.RagServer.Core.Services;
 using Mo5.RagServer.Infrastructure.Data;
 using Mo5.RagServer.Infrastructure.Services;
 using Moq;
@@ -43,12 +44,14 @@ public class DocumentServiceIndexingTests
                 .ReturnsAsync(new[] { new Vector(new float[384]) });
 
             var logger = new Mock<ILogger<DocumentService>>();
+            var ragConfigService = new Mock<IRagConfigService>();
 
             var service = new DocumentService(
                 context,
                 embeddingService.Object,
                 logger.Object,
-                configuration);
+                configuration,
+                ragConfigService.Object);
 
             // Act
             var document = await service.IndexDocumentAsync(filePath);

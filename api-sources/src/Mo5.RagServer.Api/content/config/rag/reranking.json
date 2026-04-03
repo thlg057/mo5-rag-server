@@ -1,0 +1,20 @@
+{
+  "boostRules": [
+    {
+      "keywords": ["collision", "aabb", "hitbox"],
+      "boost": 0.15
+    },
+    {
+      "keywords": ["performance", "slow", "lag", "rame"],
+      "boost": 0.2
+    },
+    {
+      "keywords": ["mo5", "6809"],
+      "boost": 0.1
+    },
+    {
+      "keywords": ["pattern", "best practice"],
+      "boost": 0.08
+    }
+  ]
+}

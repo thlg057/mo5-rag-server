@@ -2,7 +2,9 @@ using Microsoft.OpenApi.Models;
 using Mo5.RagServer.Api.Security.Middleware;
 using Mo5.RagServer.Api.Security.Models;
 using Mo5.RagServer.Api.Security.Services;
+using Mo5.RagServer.Core.Services;
 using Mo5.RagServer.Infrastructure;
+using Mo5.RagServer.Infrastructure.Services;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,6 +26,8 @@ builder.Services.Configure<AntiBruteForceSettings>(
 
 // Add security services (using in-memory implementation - can be replaced with Redis later)
 builder.Services.AddSingleton<IBlockedIpService, InMemoryBlockedIpService>();
+
+builder.Services.AddSingleton<IRagConfigService, RagConfigService>();
 
 // Add services to the container
 builder.Services.AddControllers();
