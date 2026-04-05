@@ -2,6 +2,7 @@ using Microsoft.OpenApi.Models;
 using Mo5.RagServer.Api.Security.Middleware;
 using Mo5.RagServer.Api.Security.Models;
 using Mo5.RagServer.Api.Security.Services;
+using Mo5.RagServer.Core.Interfaces;
 using Mo5.RagServer.Core.Services;
 using Mo5.RagServer.Infrastructure;
 using Mo5.RagServer.Infrastructure.Services;
@@ -28,6 +29,14 @@ builder.Services.Configure<AntiBruteForceSettings>(
 builder.Services.AddSingleton<IBlockedIpService, InMemoryBlockedIpService>();
 
 builder.Services.AddSingleton<IRagConfigService, RagConfigService>();
+
+var docsBasePath = builder.Configuration.GetValue<string>("RagSettings:DocsBasePath", "./mo5-docs") ?? "./mo5-docs";
+var officialDirectoryPath = Path.GetFullPath(docsBasePath);
+builder.Services.AddScoped<IOfficialDocumentService>(sp => 
+{
+    var logger = sp.GetRequiredService<ILogger<OfficialDocumentService>>();
+    return new OfficialDocumentService(officialDirectoryPath, logger);
+});
 
 // Add services to the container
 builder.Services.AddControllers();

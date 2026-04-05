@@ -51,6 +51,7 @@ services:
       - EmbeddingService__Provider=Remote
       - EmbeddingService__VectorDimensions=384
       - RagSettings__KnowledgeBasePath=/app/knowledge
+      - RagSettings__DocsBasePath=/app/mo5-docs
       - EmbeddingService__Endpoint=http://mo5-embedding-api:5000/embed
       # Rate Limiting
       - RateLimitSettings__Enabled=${RATE_LIMIT_ENABLED:-true}

@@ -1,0 +1,112 @@
+{
+  "documents": [
+    {
+      "id": "7d2a1b5c-8e4f-4a3d-9b1a-cf6e23456789",
+      "filePath": "official/cmoc/cmoc-manual.md",
+      "fileName": "cmoc-manual.md",
+      "title": "Manuel du compilateur CMOC (v0.1.97)",
+      "summary": "Guide complet du compilateur C pour 6809. Couvre les spécificités du langage, la gestion de la mémoire sur Thomson et les options de génération d'exécutables.",
+      "lastModified": "2025-10-24T00:00:00Z",
+      "tags": ["official", "development", "C-compiler", "6809", "technical-doc"]
+    },
+    {
+      "id": "a1e84d2b-5c3e-4b9a-9d1f-8f2e1a3b4c5d",
+      "filePath": "official/mo5/guidemo5.pdf",
+      "fileName": "guidemo5.pdf",
+      "title": "Le Guide du MO5 (André Deledicq)",
+      "summary": "Livre d'initiation culte de 1984. Idéal pour les bases du clavier, de l'écran et l'apprentissage progressif du BASIC Thomson.",
+      "lastModified": "1984-01-01T00:00:00Z",
+      "tags": ["official", "BASIC", "beginner", "user-guide"]
+    },
+    {
+      "id": "a1e84d2b-5c3e-4b9a-9d1f-8f2e1a3b4c5d",
+      "filePath": "official/mo5/guidemo5v2.pdf",
+      "fileName": "guidemo5v2.pdf",
+      "title": "Le Guide du MO5 - v2 (André Deledicq)",
+      "summary": "Livre d'initiation culte de 1984. Idéal pour les bases du clavier, de l'écran et l'apprentissage progressif du BASIC Thomson.",
+      "lastModified": "1984-01-01T00:00:00Z",
+      "tags": ["official", "BASIC", "beginner", "user-guide"]
+    },
+    {
+      "id": "e9c3f1a2-7b8d-4c5e-9a1d-2e3f4a5b6c7d",
+      "filePath": "official/mo5/manueltechniquemo5.pdf",
+      "fileName": "manueltechniquemo5.pdf",
+      "title": "Le Manuel Technique du MO5 (Michel Oury)",
+      "summary": "La bible technique pour l'assembleur et l'architecture hardware : PIA 6821, gestion des interruptions et cartographie mémoire détaillée.",
+      "lastModified": "1984-01-01T00:00:00Z",
+      "tags": ["official", "hardware", "assembly", "technical-doc"]
+    },
+    {
+      "id": "b1c2d3e4-f5a6-4b7c-8d9e-0f1a2b3c4d5e",
+      "filePath": "official/dev/guide-developpement-MO5.md",
+      "fileName": "guide-developpement-MO5.md",
+      "title": "Guide de développement moderne MO5",
+      "summary": "Synthèse des contraintes de développement : cycles CPU, gestion des 48Ko de RAM, et ressources logicielles actuelles (lwtools, CMOC).",
+      "lastModified": "2026-04-05T00:00:00Z",
+      "tags": ["dev-helper", "architecture", "modern-dev"]
+    },
+    {
+      "id": "c2d3e4f5-a6b7-4c8d-9e0f-1a2b3c4d5e6f",
+      "filePath": "official/dev/cmoc_declarations_c89.md",
+      "fileName": "cmoc_declarations_c89.md",
+      "title": "Règles de déclaration C89 (CMOC)",
+      "summary": "Guide crucial pour éviter les bugs silencieux : impose la déclaration des variables en début de bloc, contrainte stricte du standard C89 utilisé par CMOC.",
+      "lastModified": "2026-04-05T00:00:00Z",
+      "tags": ["dev-helper", "C-compiler", "coding-standards"]
+    },
+    {
+      "id": "d3e4f5a6-b7c8-4d9e-0f1a-2b3c4d5e6f7a",
+      "filePath": "official/dev/mo5_optimization_guide.md",
+      "fileName": "mo5_optimization_guide.md",
+      "title": "Guide d'optimisation C pour 6809",
+      "summary": "Techniques pour gagner des cycles : privilégier unsigned char, éviter les divisions/multiplications, et utiliser des compteurs de boucles descendants.",
+      "lastModified": "2026-04-05T00:00:00Z",
+      "tags": ["dev-helper", "optimization", "performance"]
+    },
+    {
+      "id": "e4f5a6b7-c8d9-4e0f-1a2b-3c4d5e6f7a8b",
+      "filePath": "official/dev/mo5_sprite.md",
+      "fileName": "mo5_sprite.md",
+      "title": "SDK Graphique : Gestion des Sprites",
+      "summary": "Documentation de l'API mo5_sprite : structures d'acteurs, pipeline de rendu, et gestion des coordonnées en octets.",
+      "lastModified": "2026-04-05T00:00:00Z",
+      "tags": ["sdk", "graphics", "sprites"]
+    },
+    {
+      "id": "f5a6b7c8-d9e0-4f1a-2b3c-4d5e6f7a8b9c",
+      "filePath": "official/dev/vbl_mo5.md",
+      "fileName": "vbl_mo5.md",
+      "title": "Synchronisation Verticale (VBL)",
+      "summary": "Explique le timing à 50Hz, le balayage actif vs VBL, et fournit un budget de cycles CPU par frame pour un jeu fluide.",
+      "lastModified": "2026-04-05T00:00:00Z",
+      "tags": ["hardware", "graphics", "timing"]
+    },
+    {
+      "id": "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+      "filePath": "official/dev/collisions_mo5.md",
+      "fileName": "collisions_mo5.md",
+      "title": "Détection de collisions AABB",
+      "summary": "Implémentation optimisée de rectangles englobants pour le 6809. Analyse du coût en cycles et stratégies pour éviter le pixel-perfect trop coûteux.",
+      "lastModified": "2026-04-05T00:00:00Z",
+      "tags": ["gamedev", "math", "collisions"]
+    },
+    {
+      "id": "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e",
+      "filePath": "official/dev/compression-rle-MO5.md",
+      "fileName": "compression-rle-MO5.md",
+      "title": "Compression RLE pour assets",
+      "summary": "Comment stocker plus de sprites et niveaux en ROM. Principes du Run-Length Encoding et workflow Python vers C.",
+      "lastModified": "2026-04-05T00:00:00Z",
+      "tags": ["assets", "compression", "memory"]
+    },
+    {
+      "id": "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f",
+      "filePath": "official/dev/strategies_techniques_mo5.md",
+      "fileName": "strategies_techniques_mo5.md",
+      "title": "Stratégies techniques de Jeu",
+      "summary": "Synthèse des patterns de jeu : Object Pools pour les balles, mouvement basé sur les ticks, et génération aléatoire via LFSR.",
+      "lastModified": "2026-04-05T00:00:00Z",
+      "tags": ["gamedev", "patterns", "performance"]
+    }
+  ]
+}
