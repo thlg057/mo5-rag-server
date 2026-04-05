@@ -16,7 +16,7 @@
       "title": "Le Guide du MO5 (André Deledicq)",
       "summary": "Livre d'initiation culte de 1984. Idéal pour les bases du clavier, de l'écran et l'apprentissage progressif du BASIC Thomson.",
       "lastModified": "1984-01-01T00:00:00Z",
-      "tags": ["official", "BASIC", "beginner", "user-guide"]
+      "tags": ["thomson", "mo5", "official", "BASIC", "beginner", "user-guide"]
     },
     {
       "id": "a1e84d2b-5c3e-4b9a-9d1f-8f2e1a3b4c5d",
@@ -25,7 +25,7 @@
       "title": "Le Guide du MO5 - v2 (André Deledicq)",
       "summary": "Livre d'initiation culte de 1984. Idéal pour les bases du clavier, de l'écran et l'apprentissage progressif du BASIC Thomson.",
       "lastModified": "1984-01-01T00:00:00Z",
-      "tags": ["official", "BASIC", "beginner", "user-guide"]
+      "tags": ["thomson", "mo5", "official", "BASIC", "beginner", "user-guide"]
     },
     {
       "id": "e9c3f1a2-7b8d-4c5e-9a1d-2e3f4a5b6c7d",
@@ -34,7 +34,7 @@
       "title": "Le Manuel Technique du MO5 (Michel Oury)",
       "summary": "La bible technique pour l'assembleur et l'architecture hardware : PIA 6821, gestion des interruptions et cartographie mémoire détaillée.",
       "lastModified": "1984-01-01T00:00:00Z",
-      "tags": ["official", "hardware", "assembly", "technical-doc"]
+      "tags": ["thomson", "mo5", "official", "hardware", "assembly", "technical-doc"]
     },
     {
       "id": "b1c2d3e4-f5a6-4b7c-8d9e-0f1a2b3c4d5e",
@@ -43,7 +43,7 @@
       "title": "Guide de développement moderne MO5",
       "summary": "Synthèse des contraintes de développement : cycles CPU, gestion des 48Ko de RAM, et ressources logicielles actuelles (lwtools, CMOC).",
       "lastModified": "2026-04-05T00:00:00Z",
-      "tags": ["dev-helper", "architecture", "modern-dev"]
+      "tags": ["thomson", "mo5", "dev-helper", "architecture", "modern-dev"]
     },
     {
       "id": "c2d3e4f5-a6b7-4c8d-9e0f-1a2b3c4d5e6f",
@@ -52,7 +52,7 @@
       "title": "Règles de déclaration C89 (CMOC)",
       "summary": "Guide crucial pour éviter les bugs silencieux : impose la déclaration des variables en début de bloc, contrainte stricte du standard C89 utilisé par CMOC.",
       "lastModified": "2026-04-05T00:00:00Z",
-      "tags": ["dev-helper", "C-compiler", "coding-standards"]
+      "tags": ["thomson", "mo5", "dev-helper", "C-compiler", "coding-standards"]
     },
     {
       "id": "d3e4f5a6-b7c8-4d9e-0f1a-2b3c4d5e6f7a",
@@ -61,7 +61,7 @@
       "title": "Guide d'optimisation C pour 6809",
       "summary": "Techniques pour gagner des cycles : privilégier unsigned char, éviter les divisions/multiplications, et utiliser des compteurs de boucles descendants.",
       "lastModified": "2026-04-05T00:00:00Z",
-      "tags": ["dev-helper", "optimization", "performance"]
+      "tags": ["thomson", "mo5", "dev-helper", "optimization", "performance"]
     },
     {
       "id": "e4f5a6b7-c8d9-4e0f-1a2b-3c4d5e6f7a8b",
@@ -70,7 +70,7 @@
       "title": "SDK Graphique : Gestion des Sprites",
       "summary": "Documentation de l'API mo5_sprite : structures d'acteurs, pipeline de rendu, et gestion des coordonnées en octets.",
       "lastModified": "2026-04-05T00:00:00Z",
-      "tags": ["sdk", "graphics", "sprites"]
+      "tags": ["thomson", "mo5", "sdk", "graphics", "sprites"]
     },
     {
       "id": "f5a6b7c8-d9e0-4f1a-2b3c-4d5e6f7a8b9c",
@@ -79,7 +79,7 @@
       "title": "Synchronisation Verticale (VBL)",
       "summary": "Explique le timing à 50Hz, le balayage actif vs VBL, et fournit un budget de cycles CPU par frame pour un jeu fluide.",
       "lastModified": "2026-04-05T00:00:00Z",
-      "tags": ["hardware", "graphics", "timing"]
+      "tags": ["thomson", "mo5", "hardware", "graphics", "timing"]
     },
     {
       "id": "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
@@ -88,7 +88,7 @@
       "title": "Détection de collisions AABB",
       "summary": "Implémentation optimisée de rectangles englobants pour le 6809. Analyse du coût en cycles et stratégies pour éviter le pixel-perfect trop coûteux.",
       "lastModified": "2026-04-05T00:00:00Z",
-      "tags": ["gamedev", "math", "collisions"]
+      "tags": ["thomson", "mo5", "gamedev", "math", "collisions"]
     },
     {
       "id": "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e",
@@ -97,7 +97,7 @@
       "title": "Compression RLE pour assets",
       "summary": "Comment stocker plus de sprites et niveaux en ROM. Principes du Run-Length Encoding et workflow Python vers C.",
       "lastModified": "2026-04-05T00:00:00Z",
-      "tags": ["assets", "compression", "memory"]
+      "tags": ["thomson", "mo5", "assets", "compression", "memory"]
     },
     {
       "id": "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f",
@@ -106,7 +106,34 @@
       "title": "Stratégies techniques de Jeu",
       "summary": "Synthèse des patterns de jeu : Object Pools pour les balles, mouvement basé sur les ticks, et génération aléatoire via LFSR.",
       "lastModified": "2026-04-05T00:00:00Z",
-      "tags": ["gamedev", "patterns", "performance"]
+      "tags": ["thomson", "mo5", "gamedev", "patterns", "performance"]
+    },
+    {
+      "id": "4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a",
+      "filePath": "official/dev/create-fd-disk-image.md",
+      "fileName": "create-fd-disk-image.md",
+      "title": "Créer une image disquette .fd pour le Thomson MO5",
+      "summary": "Guide pas à pas pour générer une image disquette bootable (.fd) à partir d'un binaire MO5, en utilisant l'outil BootFloppyDisk d'Olivier P (fdfs + BOOTMO.BIN).",
+      "lastModified": "2026-04-05T00:00:00Z",
+      "tags": ["thomson", "mo5", "dev-helper", "floppy", "toolchain", "disk-image"]
+    },
+    {
+      "id": "5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b",
+      "filePath": "official/dev/convert-fd-to-sd.md",
+      "fileName": "convert-fd-to-sd.md",
+      "title": "Convertir une image disquette .fd en .sd pour le SDDrive",
+      "summary": "Guide de conversion d'une image .fd vers le format .sd utilisé par le SDDrive (lecteur SD externe pour MO5). Explique l'utilisation du script fd2sd.py du sdk_mo5 et détaille la transformation structurelle entre les deux formats (géométrie, padding 0xFF, taille de sortie).",
+      "lastModified": "2026-04-05T00:00:00Z",
+      "tags": ["thomson", "mo5", "dev-helper", "floppy", "toolchain", "disk-image", "sddrive"]
+    },
+    {
+      "id": "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c",
+      "filePath": "official/dev/guide-graphical-development-mo5.md",
+      "fileName": "guide-graphical-development-mo5.md",
+      "title": "Guide de développement graphique (SDK MO5)",
+      "summary": "Documentation complète sur l'utilisation du sdk_mo5 : configuration de la toolchain (lwasm/cmoc), pipeline de création de sprites (png2mo5), gestion de la VRAM, polices de caractères (8x8 et 6x8) et déploiement via images disquettes .fd.",
+      "lastModified": "2026-04-05T00:00:00Z",
+      "tags": ["thomson", "mo5", "dev-helper", "graphics", "sdk", "toolchain", "sprites", "fonts", "game", "assets"]
     }
   ]
 }
