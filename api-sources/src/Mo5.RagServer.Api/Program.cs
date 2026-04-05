@@ -100,15 +100,15 @@ var app = builder.Build();
 
 // Configure the HTTP request pipeline
 // Swagger only in Development (use SSH tunnel to access in production)
-if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
-{
+//if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
+//{
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "MO5 RAG Server API v1");
         c.RoutePrefix = "swagger"; // Swagger UI at /swagger
     });
-}
+//}
 
 app.UseCors("AllowAll");
 app.UseHttpsRedirection();
