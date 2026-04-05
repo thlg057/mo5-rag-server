@@ -53,10 +53,20 @@ public class OfficialDocumentService : IOfficialDocumentService
     public async Task<(byte[] content, string contentType, string fileName)> GetFileContentAsync(Guid id, CancellationToken ct = default)
     {
         var doc = await GetByIdAsync(id, ct);
-        if (doc == null) throw new FileNotFoundException();
-
+        if (doc == null) 
+        {
+            _logger.LogError($"Document ID {id} non trouvé dans l'index JSON.");
+            throw new FileNotFoundException($"Document id {id} not found.");
+        }
+        
         // On part de la racine du dossier officiel pour trouver le fichier
-        var fullPath = Path.Combine(_officialPath, Path.GetFileName(doc.FilePath));
+        var fullPath = Path.Combine(_officialPath, doc.FilePath);
+        if (!File.Exists(fullPath))
+        {
+            _logger.LogError($"Fichier introuvable sur le disque : {fullPath}");
+            // On lève une FileNotFoundException que le Controller transformera en 404
+            throw new FileNotFoundException($"document '{doc.FileName}' not found.");
+        }
 
         var content = await File.ReadAllBytesAsync(fullPath, ct);
         var ext = Path.GetExtension(fullPath).ToLowerInvariant();
