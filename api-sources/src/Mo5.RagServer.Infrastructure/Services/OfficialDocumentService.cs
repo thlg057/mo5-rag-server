@@ -56,7 +56,7 @@ public class OfficialDocumentService : IOfficialDocumentService
         if (doc == null) throw new FileNotFoundException();
 
         // On part de la racine du dossier officiel pour trouver le fichier
-        var fullPath = Path.Combine(_officialPath, Path.GetFileName(doc.FileName));
+        var fullPath = Path.Combine(_officialPath, Path.GetFileName(doc.FilePath));
 
         var content = await File.ReadAllBytesAsync(fullPath, ct);
         var ext = Path.GetExtension(fullPath).ToLowerInvariant();
