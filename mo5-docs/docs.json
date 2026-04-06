@@ -110,12 +110,30 @@
     },
     {
       "id": "4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a",
-      "filePath": "official/dev/create-fd-disk-image.md",
+      "filePath": "official/dev/create-fd-disk-image-repo-olivier.md",
       "fileName": "create-fd-disk-image.md",
       "title": "Créer une image disquette .fd pour le Thomson MO5",
       "summary": "Guide pas à pas pour générer une image disquette bootable (.fd) à partir d'un binaire MO5, en utilisant l'outil BootFloppyDisk d'Olivier P (fdfs + BOOTMO.BIN).",
       "lastModified": "2026-04-05T00:00:00Z",
       "tags": ["thomson", "mo5", "dev-helper", "floppy", "toolchain", "disk-image"]
+    },
+    {
+      "id": "3cc03b56-5145-4575-a29c-1d6963af88e6",
+      "filePath": "official/dev/create-fd-disk-image-sdk-python.md",
+      "fileName": "create-fd-disk-image.md",
+      "title": "Créer une image disquette .fd pour le Thomson MO5",
+      "summary": "Guide pas à pas pour générer une image disquette bootable (.fd) à partir d'un binaire MO5, en utilisant le script makefd.py inclus dans sdk_mo5. Le boot loader MO5 est embarqué directement dans le script, aucune dépendance externe requise.",
+      "lastModified": "2026-04-06T00:00:00Z",
+      "tags": ["thomson", "mo5", "dev-helper", "floppy", "disk-image", "sdk-mo5"]
+    },
+    {
+      "id": "235705d6-fb06-4c86-8aef-f9e654f92e92",
+      "filePath": "official/dev/SPEC_makefd.md",
+      "fileName": "SPEC_makefd.md",
+      "title": "Spécification technique de makefd.py",
+      "summary": "Spécification complète pour implémenter makefd.py, le générateur d'image disquette .fd pour Thomson MO5. Couvre le format disquette Thomson, le binaire BOOTMO.BIN embarqué, et les algorithmes détaillés de formatage, allocation FAT, écriture de répertoire et injection du boot loader.",
+      "lastModified": "2026-04-06T00:00:00Z",
+      "tags": ["thomson", "mo5", "floppy", "disk-image", "sdk-mo5", "spec", "makefd"]
     },
     {
       "id": "5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b",
