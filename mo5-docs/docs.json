@@ -152,6 +152,15 @@
       "summary": "Documentation complète sur l'utilisation du sdk_mo5 : configuration de la toolchain (lwasm/cmoc), pipeline de création de sprites (png2mo5), gestion de la VRAM, polices de caractères (8x8 et 6x8) et déploiement via images disquettes .fd.",
       "lastModified": "2026-04-05T00:00:00Z",
       "tags": ["thomson", "mo5", "dev-helper", "graphics", "sdk", "toolchain", "sprites", "fonts", "game", "assets"]
+    },
+    {
+      "id": "7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d",
+      "filePath": "official/dev/mo5_hardware_reference.md",
+      "fileName": "mo5_hardware_reference.md",
+      "title": "Référence Hardware Complète MO5 (PIA, VBL, Mémoire)",
+      "summary": "Documentation technique consolidée du hardware MO5 : registres PIA système ($A7C0-$A7C3) et extension ($A7CC-$A7CF), registre VBL ($A7E7), carte mémoire complète, palette couleurs, contraintes cmoc C89 et budget cycles par frame. Sources : Manuel Technique MO5, MAME thomson.cpp, sessions de débogage.",
+      "lastModified": "2026-04-25T00:00:00Z",
+      "tags": ["thomson", "mo5", "hardware", "pia", "vbl", "memory", "technical-doc", "cmoc", "timing"]
     }
   ]
 }

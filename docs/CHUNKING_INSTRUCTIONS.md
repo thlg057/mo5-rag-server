@@ -72,7 +72,7 @@ Règles :
 
 ## Taille idéale d'un chunk
 
-- **15-50 lignes** de Markdown
+- **30-150 lignes** de Markdown
 - Chaque fichier doit être **auto-suffisant** : lisible sans contexte externe
 - Un seul sujet par fichier
 
