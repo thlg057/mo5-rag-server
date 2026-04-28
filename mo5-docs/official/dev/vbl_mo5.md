@@ -48,7 +48,9 @@ En dessinant uniquement pendant la VBL, l'écran affiche toujours un état cohé
 
 ### Le registre hardware
 
-Le MO5 utilise une PIA 6821. Le **bit 7** du registre `$A7E7` reflète le signal `INITRAME` du chip vidéo MC6847 :
+Le MO5 expose le signal VBL via le **gate-array vidéo** au registre `$A7E7` bit 7 (signal `INITN`).
+
+> ⚠️ `$A7E7` appartient au **gate-array vidéo**, **pas** au PIA système (`$A7C0–$A7C3`). Ne pas confondre ces deux zones d'I/O.
 
 | Valeur bit 7 | Signification |
 |:---:|---|

@@ -1,16 +1,49 @@
-# Map RAM and ROM address space (Thomson MO5)
+# Map RAM and ROM Address Space (Thomson MO5)
 
-Use the MO5 main memory map to place code/data safely and to reason about what the BASIC/monitor occupies.
+Carte mémoire de référence pour placer code, données et buffers sans chevaucher les zones système.
 
-## Steps
+Source : Manuel Technique MO5 p.60 + Guide du MO5 p.273 + Clefs Pour MO5 p.78 — Fiabilité ÉLEVÉE.
 
-1. Treat `$0000..$7FFF` as the main RAM area described as “user RAM” in many MO5 summaries.
-2. Treat `$C000..$FFFF` as ROM (monitor + BASIC).
-3. When you place your code/data, ensure you do not overlap ROM-mapped regions.
+## Carte mémoire complète
 
-## Notes
+| Plage | Taille | Contenu |
+|-------|--------|---------|
+| `$0000–$1F3F` | 8 Ko | RAM vidéo (FORME et COULEUR, bank-switched via `$A7C0` bit 0) |
+| `$1F40–$1FFF` | 192 o | Variables système moniteur |
+| `$2000–$20FF` | 256 o | Registres RAM moniteur |
+| `$2100–$21FF` | 256 o | Registres application |
+| `$2200–$9FFF` | ~32 Ko | **RAM utilisateur** (code + données + pile) |
+| `$A000–$A7BF` | ~2 Ko | DOS (disquettes uniquement) |
+| `$A7C0–$A7C3` | 4 o | PIA système (clavier, son, cassette, banque vidéo) |
+| `$A7CC–$A7CF` | 4 o | PIA extension (manettes, DAC) |
+| `$A7E4–$A7E7` | 4 o | Gate-array vidéo (VBL, compteurs) |
+| `$B000–$EFFF` | 16 Ko | Cartouche ROM |
+| `$F000–$FFFF` | 4 Ko | ROM moniteur |
 
-- Many MO5 programming workflows also treat `$0000..$1F3F` as a VRAM window (banked) when graphics is enabled.
-- If you use a toolchain (e.g., CMOC), align this map with your chosen `org` / load address.
+## Zones de code recommandées
 
-Source: `knowledge/docs/Guide de Programmation Technique.md`, `knowledge/docs/mo5_guide_synthese.md`
+```text
+Code CMOC par défaut : $2800 (option --org=0x2800)
+Données (--data)     : après le code
+Pile                 : sommet de la RAM user ($9FFF descendant)
+```
+
+## Ce qu'il ne faut PAS écraser
+
+```text
+❌ $0000–$1F3F  → RAM vidéo active (écriture directe via bank-switch uniquement)
+❌ $2000–$20FF  → Registres moniteur (certains sont utiles — voir section dédiée)
+❌ $A7C0–$A7FF  → Registres I/O matériels
+❌ $F000–$FFFF  → ROM moniteur (en lecture seule)
+```
+
+## Corrections fréquentes de la documentation
+
+> ⚠️ Certaines documentations indiquent `$0000–$7FFF` comme "user RAM" — **c'est inexact**.
+> La zone `$0000–$1F3F` est réservée à la VRAM.
+> La RAM utilisateur réelle commence à `$2200`.
+
+> ⚠️ La ROM moniteur est en `$F000–$FFFF`, **pas en `$C000–$FFFF`**.
+> C'est différent du TO7 et de nombreux autres systèmes 6809.
+
+Source: `mo5_hardware_reference.md` section 2

@@ -20,12 +20,16 @@ La mémoire est paginée. La RAM utilisateur cohabite avec la ROM et les zones d
 
 | Plage         | Contenu                                      |
 |---------------|----------------------------------------------|
-| `$0000-$1F3F` | RAM écran (forme)                            |
-| `$1F40-$1FFF` | Variables système                            |
-| `$2000-$3FFF` | RAM utilisateur basse                        |
-| `$4000-$7FFF` | ROM Basic / extension                        |
-| `$A7C0-$A7FF` | Zone I/O — PIA 6821 (clavier, joystick, son) |
-| `$C000-$FFFF` | ROM moniteur                                 |
+| `$0000-$1F3F` | RAM vidéo (FORME et COULEUR, bank-switched)  |
+| `$1F40-$1FFF` | Variables système (moniteur ROM)             |
+| `$2000-$20FF` | Registres du moniteur RAM                    |
+| `$2100-$21FF` | Registres de l'application                   |
+| `$2200-$9FFF` | RAM utilisateur (~32 Ko)                     |
+| `$A7C0-$A7C3` | PIA système (clavier, son, cassette, vidéo)  |
+| `$A7CC-$A7CF` | PIA extension (manettes, DAC son)            |
+| `$A7E4-$A7E7` | Gate-array vidéo (VBL, compteurs)            |
+| `$B000-$EFFF` | Cartouche ROM                                |
+| `$F000-$FFFF` | ROM moniteur                                 |
 
 **Pas de `malloc`** — tout est statique. Planifie dès le départ l'emplacement de ton code, tes données et tes buffers.
 
@@ -236,9 +240,9 @@ Planifie précisément l'usage de la mémoire :
 
 | Zone              | Usage suggéré                         |
 |-------------------|---------------------------------------|
-| RAM basse         | Variables système, stack              |
-| RAM utilisateur   | Code, données, buffers                |
-| ROM/Cartouche     | Code final, tables, graphismes        |
+| `$2200-$9FFF`     | Code, données, buffers (RAM user)     |
+| `$B000-$EFFF`     | Code final, tables, graphismes (ROM)  |
+| Stack             | Sommet de la RAM user ($9FFF desc.)   |
 
 ---
 

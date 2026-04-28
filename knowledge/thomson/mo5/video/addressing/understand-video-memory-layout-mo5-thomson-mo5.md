@@ -1,45 +1,82 @@
+# Understand MO5 Video Memory Layout (Thomson MO5)
 
-# Understand MO5 video memory layout (Thomson MO5)
+Le MO5 utilise une mémoire vidéo de 8 Ko partagée entre CPU et hardware vidéo, organisée en deux banques sélectionnées par bank-switch.
 
-Understand how pixels and colors are stored in VRAM.
+Source : Manuel Technique MO5 p.8-12 — Fiabilité ÉLEVÉE.
 
-## Goal
+## Spécifications
 
-Correctly manipulate pixels and avoid hardware limitations.
+- Résolution : 320×200 pixels
+- 1 octet = 8 pixels horizontaux → 40 octets par ligne
+- 200 lignes → 8 000 octets par banque
+- Base VRAM : `$0000`
 
-## Video specs
+## Deux banques (bank-switch via $A7C0 bit 0)
 
-- Resolution: 320x200
-- 40 bytes per row
+| Banque | Sélection | Rôle | Contenu |
+|--------|-----------|------|---------|
+| COULEUR | bit 0 = 0 | Attributs couleur | 1 octet par groupe de 8px : `FFFFBBBB` |
+| FORME | bit 0 = 1 | Bitmap | 1 bit par pixel : 1=forme, 0=fond |
 
-## Memory banks
+```c
+#define PRC      ((unsigned char *)0xA7C0)
+#define VRAM     ((unsigned char *)0x0000)
 
-1. Form bank:
-   - 1 bit per pixel
-   - Defines shape
+/* Sélectionner banque COULEUR */
+*PRC &= ~0x01;
+/* Sélectionner banque FORME */
+*PRC |=  0x01;
+```
 
-2. Color bank:
-   - 1 byte per 8 pixels
-   - Format: FFFFBBBB
+## Calcul d'offset VRAM
 
-## Constraint
+```c
+/* Offset d'un octet à position (tx, ty) */
+/* tx = colonne en octets (0-39), ty = ligne en pixels (0-199) */
+unsigned int offset = row_offsets[ty] + tx;
 
-Each group of 8 pixels:
-- max 2 colors
-- foreground + background
+/* row_offsets est précalculé par mo5_video_init() */
+/* row_offsets[y] = y * 40 */
+```
 
-## Coordinates
+> ⚠️ Ne pas calculer `y * 40` à l'exécution — le 6809 n'a pas de multiplication hardware.
+> Utiliser la table `row_offsets[]` précalculée.
 
-- X: 0–39 (bytes)
-- Y: 0–199 (pixels)
+## Format octet couleur (banque COULEUR)
 
-## Why it matters
+```
+bit 7–4 : index couleur FORME (fg) — 0 à 15
+bit 3–0 : index couleur FOND  (bg) — 0 à 15
+```
 
-Violating constraints causes visual artifacts.
+## Contrainte hardware — color clash
 
-## Common mistakes
+Chaque octet de la banque COULEUR couvre **8 pixels horizontaux**. Ce groupe partage obligatoirement 2 couleurs (fond + forme). Il est **impossible** d'avoir plus de 2 couleurs différentes dans un même groupe de 8 pixels.
 
-- ❌ Using more than 2 colors per block
-- ❌ Thinking X is pixel-based
+## Séquence d'écriture d'un sprite
 
-Source: guide-graphical-development-mo5.md
+```c
+/* 1. Écrire la couleur */
+*PRC &= ~0x01;                  /* banque COULEUR */
+for (i = 0; i < h; i++)
+    for (j = 0; j < w; j++)
+        VRAM[row_offsets[ty+i] + tx+j] = color_data[...];
+
+/* 2. Écrire la forme */
+*PRC |= 0x01;                   /* banque FORME */
+for (i = 0; i < h; i++)
+    for (j = 0; j < w; j++)
+        VRAM[row_offsets[ty+i] + tx+j] = form_data[...];
+```
+
+## Erreurs fréquentes
+
+```text
+❌ Oublier de sélectionner la banque avant écriture → données dans la mauvaise banque
+❌ Calculer y * 40 à l'exécution → lent, utiliser row_offsets[]
+❌ Confondre tx (en octets) et x (en pixels) → tx = x / 8
+❌ Supposer que X est en pixels → X est en octets (0-39)
+❌ Plus de 2 couleurs dans 8px → color clash hardware
+```
+
+Source: `mo5_hardware_reference.md` sections 3 et 5

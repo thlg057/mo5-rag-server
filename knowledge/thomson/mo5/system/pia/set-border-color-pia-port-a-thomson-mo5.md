@@ -1,31 +1,51 @@
-# Set border color with PIA Port A (Thomson MO5)
+# Set Border Color with PIA Port A (Thomson MO5)
 
-Set the MO5 screen border (“cadre”) color by updating bits PA1..PA4 of the system 6821 PIA Port A at `$A700`, while preserving other bits (keyboard scan, tape control, etc.).
+Changer la couleur du cadre (bordure) de l'écran via les bits PA1–PA4 du PIA système à `$A7C0`.
 
-## Steps
+Source : Manuel Technique MO5 p.18 + Guide du MO5 p.278 — Fiabilité ÉLEVÉE.
 
-1. Read the current value at `$A700`.
-2. Clear bits 1..4 using mask `0xE1` (`1110 0001b`).
-3. Insert the new 4-bit color value (0..15) shifted left by 1.
-4. Write the result back to `$A700`.
+## Câblage PORTA $A7C0 bits 1-4
 
-## C example
+Les bits 1 à 4 encodent la couleur du tour en RVB+demi-teinte, identique au codage couleur VRAM :
+
+| Bit | Signal | Couleur |
+|-----|--------|---------|
+| PA1 | RT | Rouge |
+| PA2 | VT | Vert |
+| PA3 | BT | Bleu |
+| PA4 | PT | demi-teinte (pastel) |
+
+> ⚠️ L'adresse correcte est `$A7C0`, **pas `$A700`**.
+
+## Exemple C (cmoc)
 
 ```c
 void set_border_color(unsigned char color)
 {
-    unsigned char *portA = (unsigned char *)0xA700;
-    unsigned char v = *portA;
-
-    v &= 0xE1;                    // keep PA0 and PA5..PA7
-    v |= (unsigned char)((color & 0x0F) << 1);
-    *portA = v;
+    unsigned char val;
+    val  = *((unsigned char*)0xA7C0);
+    val &= 0xE1;                          /* garder PA0 (banque VRAM), PA5-PA7 */
+    val |= (unsigned char)((color & 0x0F) << 1);
+    *((unsigned char*)0xA7C0) = val;
 }
 ```
 
-## Notes
+## Notes importantes
 
-- Preserve PA0: the system uses it for keyboard scanning.
-- If you reconfigure the PIA, ensure PA1..PA4 are configured as outputs before writing.
+- **PA0** (bit 0) : sélection banque vidéo — NE PAS écraser
+- **PA5** (bit 5) : entrée crayon optique — NE PAS écraser
+- **PA6/PA7** : cassette — NE PAS écraser
+- Utiliser impérativement un read-modify-write avec masque `0xE1`
+- La couleur du cadre utilise le même codage 4 bits que la palette VRAM
 
-Source: `knowledge/docs/mo5_cadre_pia.md`, `knowledge/docs/Guide de Programmation Technique.md`, `knowledge/docs/mo5_guide_synthese.md`
+## Utilisation avec les constantes SDK
+
+```c
+/* Cadre rouge */
+set_border_color(C_RED);   /* C_RED = 1 */
+
+/* Cadre bleu */
+set_border_color(C_BLUE);  /* C_BLUE = 4 */
+```
+
+Source: `mo5_hardware_reference.md` section 6 — Fiabilité ÉLEVÉE (Manuel Technique + Guide)

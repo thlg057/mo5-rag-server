@@ -52,8 +52,8 @@ Coordonnées d'un objet à l'écran.
 
 ```c
 typedef struct {
-    int x;   // Position horizontale en octets (1 octet = 8 pixels)
-    int y;   // Position verticale en lignes pixels
+    unsigned char x;   // Position horizontale en octets (1 octet = 8 pixels) — 0 à 39
+    unsigned char y;   // Position verticale en lignes pixels — 0 à 199
 } MO5_Position;
 ```
 
@@ -65,10 +65,10 @@ Données graphiques statiques d'un sprite. Ne contient pas de position — c'est
 
 ```c
 typedef struct {
-    unsigned char *form;    // Bitmap 1 bit/pixel  (1=forme, 0=fond)
-    unsigned char *color;   // Attributs couleur    (1 octet par groupe de 8 pixels)
-    int width_bytes;        // Largeur en octets
-    int height;             // Hauteur en lignes pixels
+    unsigned char *form;        // Bitmap 1 bit/pixel  (1=forme, 0=fond)
+    unsigned char *color;       // Attributs couleur    (1 octet par groupe de 8 pixels)
+    unsigned char  width_bytes; // Largeur en octets (0 à 40)
+    unsigned char  height;      // Hauteur en lignes pixels (0 à 200)
 } MO5_Sprite;
 ```
 
@@ -207,7 +207,7 @@ Déplace l'acteur vers une nouvelle position de façon **optimisée** :
 - Met à jour `old_pos` et `pos` automatiquement
 
 ```c
-void mo5_actor_move(MO5_Actor *actor, int new_x, int new_y);
+void mo5_actor_move(MO5_Actor *actor, unsigned char new_x, unsigned char new_y);
 
 // Exemple
 mo5_actor_move(&player, player.pos.x + 1, player.pos.y);
@@ -225,13 +225,13 @@ void mo5_actor_clamp(MO5_Actor *actor);
 
 ```c
 // Pattern recommandé dans la boucle de jeu
-MO5_Position new_pos = player.pos;
+MO5_Position new_pos;
 new_pos.x += dx;
 new_pos.y += dy;
 
 // Clamp manuel sur new_pos avant de l'envoyer à move
-int max_x = SCREEN_WIDTH_BYTES - player.sprite->width_bytes;
-int max_y = SCREEN_HEIGHT      - player.sprite->height;
+unsigned char max_x = SCREEN_WIDTH_BYTES - player.sprite->width_bytes;
+unsigned char max_y = SCREEN_HEIGHT      - player.sprite->height;
 if (new_pos.x < 0)      new_pos.x = 0;
 if (new_pos.x > max_x)  new_pos.x = max_x;
 if (new_pos.y < 0)      new_pos.y = 0;
@@ -249,9 +249,9 @@ mo5_actor_move(&player, new_pos.x, new_pos.y);
 ### `mo5_draw_sprite`
 
 ```c
-void mo5_draw_sprite(int tx, int ty,
+void mo5_draw_sprite(unsigned char tx, unsigned char ty,
                      unsigned char *form_data, unsigned char *color_data,
-                     int width_bytes, int height);
+                     unsigned char width_bytes, unsigned char height);
 ```
 
 Optimisé : **1 seul switch PRC** pour toutes les couleurs, **1 seul switch PRC** pour toutes les formes (au lieu d'un switch par ligne dans la version naïve).
@@ -259,7 +259,8 @@ Optimisé : **1 seul switch PRC** pour toutes les couleurs, **1 seul switch PRC*
 ### `mo5_clear_sprite`
 
 ```c
-void mo5_clear_sprite(int tx, int ty, int width_bytes, int height);
+void mo5_clear_sprite(unsigned char tx, unsigned char ty,
+                      unsigned char width_bytes, unsigned char height);
 ```
 
 Même optimisation : 2 passes complètes, 2 switches PRC au total.
@@ -267,10 +268,10 @@ Même optimisation : 2 passes complètes, 2 switches PRC au total.
 ### `mo5_move_sprite`
 
 ```c
-void mo5_move_sprite(int old_tx, int old_ty,
-                     int new_tx, int new_ty,
+void mo5_move_sprite(unsigned char old_tx, unsigned char old_ty,
+                     unsigned char new_tx, unsigned char new_ty,
                      unsigned char *form_data, unsigned char *color_data,
-                     int width_bytes, int height);
+                     unsigned char width_bytes, unsigned char height);
 ```
 
 Version optimisée du déplacement : ne cleare que la zone hors recouvrement entre l'ancienne et la nouvelle position.
@@ -382,7 +383,7 @@ int main(void) {
     while (1) {
         char key = wait_key();
 
-        MO5_Position new_pos = player.pos;
+        MO5_Position new_pos;
         switch (key) {
             case KEY_UP:    new_pos.y -= SPEED_Y; break;
             case KEY_DOWN:  new_pos.y += SPEED_Y; break;
@@ -391,8 +392,8 @@ int main(void) {
         }
 
         // Clamp puis déplacement optimisé
-        int max_x = SCREEN_WIDTH_BYTES - spr_perso.width_bytes;
-        int max_y = SCREEN_HEIGHT      - spr_perso.height;
+        unsigned char max_x = SCREEN_WIDTH_BYTES - spr_perso.width_bytes;
+        unsigned char max_y = SCREEN_HEIGHT      - spr_perso.height;
         if (new_pos.x < 0)      new_pos.x = 0;
         if (new_pos.x > max_x)  new_pos.x = max_x;
         if (new_pos.y < 0)      new_pos.y = 0;

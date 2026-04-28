@@ -174,9 +174,12 @@ void rle_decode(const unsigned char *src, unsigned char *dst, int dst_size) {
 /* RLE avec mode littéral (bit7 = mode) */
 void rle_decode_ex(const unsigned char *src, unsigned char *dst) {
     unsigned char header;
-    int count, i;
-    unsigned char *out = dst;
+    unsigned char count;
+    unsigned char value;
+    unsigned char i;
+    unsigned char *out;
 
+    out = dst;
     while ((header = *src++) != 0x00) {
         if (header & 0x80) {
             /* Mode littéral : copier count octets tels quels */
@@ -186,7 +189,7 @@ void rle_decode_ex(const unsigned char *src, unsigned char *dst) {
         } else {
             /* Mode répétition : répéter la valeur count fois */
             count = header;
-            unsigned char value = *src++;
+            value = *src++;
             for (i = 0; i < count; i++)
                 *out++ = value;
         }
